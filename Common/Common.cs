@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace PicoChat.Common
@@ -33,23 +32,59 @@ namespace PicoChat.Common
         public const int MESSAGE_TYPE_LENGTH = 4;
     }
 
+    [XmlRoot]
     public class Message
     {
-        public DateTime utcTime;
-        public string room;
-        public string author;
-        public string content;
+        [XmlAttribute]
+        public DateTime UtcTime { get; set; }
+        [XmlAttribute]
+        public string Room { get; set; }
+        [XmlAttribute]
+        public string Name { get; set; }
+        [XmlElement]
+        public string Content { get; set; }
+
         public Message() : this("", "", "") { }
-        public Message(string author, string room, string content)
+        public Message(string name, string room, string content)
         {
-            this.utcTime = DateTime.UtcNow;
-            this.author = author;
-            this.room = room;
-            this.content = content;
+            UtcTime = DateTime.Now;
+            Name = name;
+            Room = room;
+            Content = content;
         }
         public override string ToString()
         {
-            return $"uctTime: {utcTime}, room: {room}, author: {author}, content: {content}";
+            return $"uctTime: {UtcTime}, room: {Room}, name: {Name}, content: {Content}";
+        }
+
+        public override bool Equals(object obj)
+        {
+            var message = obj as Message;
+            return message != null &&
+                   UtcTime == message.UtcTime &&
+                   Room == message.Room &&
+                   Name == message.Name &&
+                   Content == message.Content;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = 2007374510;
+            hashCode = hashCode * -1521134295 + UtcTime.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Room);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Name);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Content);
+            return hashCode;
+        }
+
+        public static bool operator ==(Message message1, Message message2)
+        {
+            return EqualityComparer<Message>.Default.Equals(message1, message2);
+        }
+
+        public static bool operator !=(Message message1, Message message2)
+        {
+            return !(message1 == message2);
         }
     }
 
@@ -75,7 +110,7 @@ namespace PicoChat.Common
         public static string Serialize(object @object)
         {
 
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(Message));
+            XmlSerializer xmlSerializer = new XmlSerializer(@object.GetType());
             using (StringWriter textWriter = new StringWriter())
             {
                 xmlSerializer.Serialize(textWriter, @object);

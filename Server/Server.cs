@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using PicoChat.Common;
-using System.Linq;
-using System.Text;
 
 namespace PicoChat
 {
@@ -50,7 +47,7 @@ namespace PicoChat
         {
             foreach (var connection in connections)
             {
-                if (!connection.ClientName.Equals(message.author))
+                if (!connection.ClientName.Equals(message.Name))
                 {
                     connection.SendMessage(message);
                 }
@@ -62,7 +59,6 @@ namespace PicoChat
     {
         readonly Dictionary<string, Room> rooms = new Dictionary<string, Room>();
         readonly Dictionary<string, Connection> connections = new Dictionary<string, Connection>();
-        //ConcurrentBag<Connection> connections = new ConcurrentBag<Connection>();
         CancellationTokenSource cts = new CancellationTokenSource();
         long clientCount_;
 
@@ -104,14 +100,14 @@ namespace PicoChat
                         continue;
                     }
                     IPEndPoint remoteEndPoint = (IPEndPoint)client.RemoteEndPoint;
-                    Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} Connected; " +
-                        $"Current Connection: {Interlocked.Increment(ref clientCount_)}");
+                    Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} connected; " +
+                        $"Current connection: {Interlocked.Increment(ref clientCount_)}");
 
                     Task task = CommunicateWithClientUsingSocketAsync(client);
                     task.GetAwaiter().OnCompleted(() =>
                     {
-                        Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} Connected; " +
-                            $"Current Connection: {Interlocked.Decrement(ref clientCount_)}");
+                        Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} disconnected; " +
+                            $"Current connection: {Interlocked.Decrement(ref clientCount_)}");
                     });
                 }
 
@@ -147,16 +143,17 @@ namespace PicoChat
                             {
                                 connections.Add(name, @this);
                                 @this.ClientName = name;
-                                @this.SendMessage(MessageType.SYSTEM_LOGIN_OK);
+                                @this.SendMessage(MessageType.SYSTEM_LOGIN_OK, $"Hello {@this.ClientName}~");
                                 Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} logged in as \"{@this.ClientName}\".");
                             }
                             else
                             {
-                                @this.SendMessage(MessageType.SYSTEM_LOGIN_FAILED, $"The name \"{name}\" is already taken");
+                                @this.SendMessage(MessageType.SYSTEM_LOGIN_FAILED, $"Sorry, the name \"{name}\" is already taken");
                             }
                         }
                     }
                 };
+
                 connection.Logout += (sender, name) =>
                 {
                     Connection @this = sender as Connection;
@@ -180,9 +177,12 @@ namespace PicoChat
                                     }
                                 });
                             }
+
                             @this.SendMessage(MessageType.SYSTEM_OK, $"Logged out");
-                            @this.ClientName = null;
                             Console.WriteLine($"\"{@this.ClientName}\" [{remoteEndPoint.Address}:{remoteEndPoint.Port}] logged out.");
+
+                            connections.Remove(@this.ClientName);
+                            @this.ClientName = null;
                         }
                         else
                         {
@@ -191,13 +191,14 @@ namespace PicoChat
                     }
 
                 };
+
                 connection.JoinRoom += (sender, roomName) =>
                 {
                     Connection @this = sender as Connection;
                     if (@this == null) return;
                     if (@this.ClientName == null)
                     {
-                        @this.SendMessage(MessageType.NO_LOGGED);
+                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
                         return;
                     }
                     lock (Rooms)
@@ -211,8 +212,6 @@ namespace PicoChat
                         if (room.Add(@this))
                         {
                             lock (@this.JoinedRooms) @this.JoinedRooms.Add(room.Name);
-                            IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
-                            Console.WriteLine($"{@this.ClientName} [{endPoint.Address}:{endPoint.Port}] joined the room[{room.Name}]");
                             @this.SendMessage(MessageType.SYSTEM_OK, $"Joined the room[{room.Name}]");
                             Console.WriteLine($"{@this.ClientName} [{remoteEndPoint.Address}:{remoteEndPoint.Port}] joined the room[{room.Name}].");
                         }
@@ -229,7 +228,7 @@ namespace PicoChat
                     if (@this == null) return;
                     if (@this.ClientName == null)
                     {
-                        @this.SendMessage(MessageType.SYSTEM_ERROR);
+                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
                         return;
                     }
 
@@ -259,12 +258,19 @@ namespace PicoChat
                     if (@this == null) return;
                     if (@this.ClientName == null)
                     {
-                        @this.SendMessage(MessageType.NO_LOGGED);
+                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
                         return;
                     }
-                    string s = null;
-                    lock (@this.JoinedRooms) s = Serializer.Serialize(@this.JoinedRooms);
-                    @this.SendMessage(MessageType.CLIENT_LIST_JOINED_ROOMS, s);
+                    StringBuilder stringBuilder = new StringBuilder();
+                    lock (@this.JoinedRooms)
+                    {
+                        @this.JoinedRooms.ForEach(r =>
+                        {
+                            stringBuilder.Append(r);
+                            stringBuilder.Append('\n');
+                        });
+                    }
+                    @this.SendMessage(MessageType.CLIENT_LIST_JOINED_ROOMS, stringBuilder.ToString());
                 };
 
                 connection.MessageReceived += (sender, message) =>
@@ -275,21 +281,22 @@ namespace PicoChat
                     {
                         @this.SendMessage(MessageType.SYSTEM_ERROR);
                     }
-                    else if (@this.ClientName == null || !@this.ClientName.Equals(message.author))
+                    else if (@this.ClientName == null || !@this.ClientName.Equals(message.Name))
                     {
-                        @this.SendMessage(MessageType.NO_LOGGED);
+                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
+                        return;
                     }
-                    else if (message.room == null)
+                    else if (message.Room == null)
                     {
-                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM);
+                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
                     }
-                    else if (Rooms.TryGetValue(message.room, out Room room))
+                    else if (Rooms.TryGetValue(message.Room, out Room room))
                     {
                         room.SendMessage(message);
                     }
                     else
                     {
-                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM);
+                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
                     }
                 };
 

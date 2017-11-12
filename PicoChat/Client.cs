@@ -30,22 +30,24 @@ namespace PicoChat
         ConectionState state_ = ConectionState.DISCONNECTED;
         Socket socket_;
         NetworkStream stream_;
-        //BlockingCollection<string> messageQueue = new BlockingCollection<string>();
         string name;
         CancellationTokenSource cts_ = new CancellationTokenSource();
 
-
         public string Name => name;
-
         public bool Connected { get => state_ == ConectionState.CONNECTED; }
+        public IPAddress ServerAddress { get; set; }
+        public int ServerPort { get; set; }
+
+        public event EventHandler<Message> MessageReceived;
+        public event EventHandler<ConectionState> StateChaged;
+        public event EventHandler<SocketException> SocketExceptionRaising;
+        public event EventHandler<SystemMessageEventArgs> SystemMessageReceived;
+
         public enum ConectionState
         {
             CONNECTED,
             DISCONNECTED
         }
-
-        public IPAddress ServerAddress { get; }
-        public int ServerPort { get; }
 
         public class SystemMessageEventArgs : EventArgs
         {
@@ -57,11 +59,6 @@ namespace PicoChat
                 Data = data;
             }
         }
-
-        public event EventHandler<Message> MessageReceived;
-        public event EventHandler<ConectionState> StateChaged;
-        public event EventHandler<SocketException> SocketExceptionRaising;
-        public event EventHandler<SystemMessageEventArgs> SystemMessageReceived;
 
         public Client(IPAddress serverAddress, int port)
         {
@@ -97,10 +94,8 @@ namespace PicoChat
                         StateChaged?.Invoke(this, ConectionState.CONNECTED);
 
                         stream_ = new NetworkStream(socket_);
-                        //Task tSender = Sender(stream_, cts_);
                         Task tReceiver = Receiver(stream_, cts_);
                         tReceiver.Wait();
-                        //Task.WaitAll(tSender, tReceiver);
                     }
                 }
                 catch (SocketException ex)
@@ -119,25 +114,6 @@ namespace PicoChat
                 logging_.Debug("SendAndReceive Finished.");
             });
         }
-
-        //public async Task Sender(NetworkStream stream, CancellationTokenSource cts)
-        //{
-        //    logging_.Debug("Sender task");
-        //    await SendMessage("/hello");
-        //    Console.WriteLine("Enter a string to send, /shutdown to exit");
-
-        //    while (true)
-        //    {
-        //        string message = messageQueue.Take();
-        //        await SendMessage(message);
-        //        if (message == "/shutdown")
-        //        {
-        //            cts.Cancel();
-        //            logging_.Debug("Sender task closes");
-        //            break;
-        //        }
-        //    }
-        //}
 
         public Task Receiver(NetworkStream stream, CancellationTokenSource cts)
         {
@@ -181,24 +157,21 @@ namespace PicoChat
                     {
                         logging_.Debug(ex);
                     }
+                    catch (IOException ex)
+                    {
+                        if (ex.InnerException is SocketException)
+                        {
+                            SocketExceptionRaising?.Invoke(this, (SocketException)ex.InnerException);
+                        }
+                        else
+                        {
+                            logging_.Debug(ex);
+                        }
+                    }
                 }
                 logging_.Debug("Receiver task exited");
             });
         }
-
-        //public void Send(string message)
-        //{
-        //    messageQueue.Add(message);
-        //}
-
-
-        //async Task SendMessage(string message)
-        //{
-        //    byte[] buffer = Encoding.UTF8.GetBytes($"{message}");
-        //    await stream_.WriteAsync(buffer, 0, buffer.Length);
-        //    await stream_.FlushAsync();
-        //}
-
 
         void Send(MessageType messageType)
         {
@@ -207,6 +180,12 @@ namespace PicoChat
 
         void Send(MessageType type, byte[] content)
         {
+            if (!Connected)
+            {
+                FireError("FAILED TO SEND MESSAGE, PLEASE CHECK YOUR CONNECTION");
+                FireInfo("PLEASE USE /connect TO CONNECT");
+                return;
+            }
             using (BinaryWriter writer = new BinaryWriter(stream_, Encoding.UTF8, true))
             {
                 writer.Write((uint)type);
@@ -220,6 +199,16 @@ namespace PicoChat
                     writer.Write(0);
                 }
             }
+        }
+
+        void FireInfo(string message)
+        {
+            MessageReceived?.Invoke(this, new Message("[Info]", "[System]", message));
+        }
+
+        void FireError(string message)
+        {
+            MessageReceived?.Invoke(this, new Message("[Error]", "[System]", message));
         }
 
         public void Login(string name)
@@ -243,14 +232,14 @@ namespace PicoChat
             Send(MessageType.CLIENT_LEAVE_ROOM, Encoding.UTF8.GetBytes(roomName));
         }
 
+        public void ListJoinedRooms()
+        {
+            Send(MessageType.CLIENT_LIST_JOINED_ROOMS);
+        }
+
         public void SendMessage(string roomName, string content)
         {
             Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(name, roomName, content)));
-        }
-
-        public void Ping()
-        {
-            throw new NotImplementedException();
         }
     }
 }

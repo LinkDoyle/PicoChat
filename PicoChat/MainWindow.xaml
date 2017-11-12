@@ -11,14 +11,21 @@
 
         <Button x:Name="sendButton" Content="Send" Margin="0,0,10,10" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="99"/>
         <TextBox x:Name="messageToSendBox" Margin="10,0,114,10" TextWrapping="Wrap" Height="25" VerticalAlignment="Bottom" FontSize="14"/>
-        <ScrollViewer Margin="10,10,10,40">
-            <TextBox x:Name="messageBlock"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     IsReadOnly="True"
-                     TextWrapping="Wrap"
-                     FontSize="16"/>
-        </ScrollViewer>
-
+        <ListView Margin="10,10,10,40" Name="messageListView" ItemsSource="{Binding}" IsSynchronizedWithCurrentItem="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <WrapPanel>
+                            <TextBlock Text="{Binding Room}" Foreground="BlueViolet"/>
+                            <TextBlock Text=" " />
+                            <TextBlock Text="{Binding Name}" Foreground="BlueViolet"/>
+                            <TextBlock Text=" " />
+                            <TextBlock Text="{Binding UtcTime}" Foreground="ForestGreen" />
+                        </WrapPanel>
+                        <TextBlock FontFamily="Consolas" Margin="10, 0, 0, 10" Text="{Binding Content}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
     </Grid>
 </Window>
