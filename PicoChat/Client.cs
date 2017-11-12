@@ -1,17 +1,13 @@
 ﻿#define DEBUG
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Diagnostics;
-using System.Collections.Concurrent;
-using System.Windows.Threading;
 using PicoChat.Common;
-using System.IO;
 
 namespace PicoChat
 {
