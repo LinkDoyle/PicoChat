@@ -33,6 +33,53 @@ namespace PicoChat.Common
     }
 
     [XmlRoot]
+    public class RoomInfo : IEquatable<RoomInfo>
+    {
+        public RoomInfo() : this(null)
+        {
+        }
+
+        public RoomInfo(string name)
+        {
+            Name = name;
+        }
+
+        [XmlAttribute]
+        public string Name { get; set; }
+
+        public override string ToString()
+        {
+            return $"name: {Name}";
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as RoomInfo);
+        }
+
+        public bool Equals(RoomInfo other)
+        {
+            return other != null &&
+                   Name == other.Name;
+        }
+
+        public override int GetHashCode()
+        {
+            return 539060726 + EqualityComparer<string>.Default.GetHashCode(Name);
+        }
+
+        public static bool operator ==(RoomInfo info1, RoomInfo info2)
+        {
+            return EqualityComparer<RoomInfo>.Default.Equals(info1, info2);
+        }
+
+        public static bool operator !=(RoomInfo info1, RoomInfo info2)
+        {
+            return !(info1 == info2);
+        }
+    }
+
+    [XmlRoot]
     public class Message
     {
         [XmlAttribute]
@@ -96,17 +143,6 @@ namespace PicoChat.Common
             return Encoding.UTF8.GetBytes(Serialize(message));
         }
 
-        public static string Serialize(Message message)
-        {
-
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(Message));
-            using (StringWriter textWriter = new StringWriter())
-            {
-                xmlSerializer.Serialize(textWriter, message);
-                return textWriter.ToString();
-            }
-        }
-
         public static string Serialize(object @object)
         {
 
@@ -118,15 +154,15 @@ namespace PicoChat.Common
             }
         }
 
-        public static Message DeserializeMessage(string message)
+        public static T Deserialize<T>(string message)
         {
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(Message));
+            XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
             using (StringReader textReader = new StringReader(message))
             {
-                Message result = null;
+                T result = default(T);
                 try
                 {
-                    result = (Message)xmlSerializer.Deserialize(textReader);
+                    result = (T)xmlSerializer.Deserialize(textReader);
                 }
                 catch (InvalidOperationException)
                 {
@@ -134,6 +170,11 @@ namespace PicoChat.Common
                 }
                 return result;
             }
+        }
+
+        public static Message DeserializeMessage(string message)
+        {
+            return Deserialize<Message>(message);
         }
     }
 }
