@@ -14,12 +14,16 @@ namespace PicoChat
     /// </summary>
     public partial class MainWindow : Window
     {
-        string currentRoomName;
+        const string APP_NAME = "PicoChat";
         Client client = new Client(IPAddress.Loopback, 23333);
         ObservableCollection<Message> messages = new ObservableCollection<Message>();
+        ObservableCollection<string> joinedRooms = new ObservableCollection<string>();
         public MainWindow()
         {
             InitializeComponent();
+
+            JoinedRoomList.ItemsSource = joinedRooms;
+
             sendButton.Click += (sender, e) => OnSendMessage();
             messageToSendBox.KeyDown += (sender, e) =>
             {
@@ -56,8 +60,8 @@ namespace PicoChat
             {
                 if (client.Connected)
                 {
-                    messages.Add(new Message("<this>", currentRoomName, messageToSendBox.Text));
-                    client.SendMessage(currentRoomName, messageToSendBox.Text);
+                    messages.Add(new Message("<this>", client.CurrentRoomName, messageToSendBox.Text));
+                    client.SendMessage(client.CurrentRoomName, messageToSendBox.Text);
                 }
                 else
                 {
@@ -106,7 +110,8 @@ namespace PicoChat
                             client.ServerPort = port;
                             FireInfo($"CONNECTING to {client.ServerAddress}:{client.ServerPort}...");
                             client.Connect();
-                        } else
+                        }
+                        else
                         {
                             FireError($"The client has connected to {client.ServerAddress}:{client.ServerPort}.");
                         }
@@ -134,7 +139,6 @@ namespace PicoChat
                             FireError($"Invalid Command {messageToSendBox.Text}");
                             break;
                         }
-                        currentRoomName = argv[1];
                         client.Join(argv[1]);
                         break;
                     case "/leave":
@@ -143,6 +147,7 @@ namespace PicoChat
                             FireError($"Invalid Command {messageToSendBox.Text}");
                             break;
                         }
+                        client.CurrentRoomName = "";
                         client.Leave(argv[1]);
                         break;
                     case "/list":
@@ -172,9 +177,39 @@ namespace PicoChat
         void Window_Loaded(object sender, RoutedEventArgs e)
         {
             client.SystemMessageReceived += Client_SystemMessageReceived;
+            client.JoinedInRoom += Client_JoinedInRoom;
+            client.LeavedFromRoom += Client_LeavedFromRoom;
             client.MessageReceived += Client_MessageReceived;
             client.StateChaged += Client_StateChaged;
             client.SocketExceptionRaising += Client_SocketExceptionRaising;
+        }
+
+        void JoinedRoomList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (JoinedRoomList.SelectedIndex != -1)
+            {
+                client.CurrentRoomName = JoinedRoomList.SelectedItem.ToString();
+                Title = $"{APP_NAME} - [{client.CurrentRoomName}]";
+            }
+            else
+            {
+                client.CurrentRoomName = null;
+                Title = $"{APP_NAME}";
+            }
+
+        }
+
+        void Client_JoinedInRoom(object sender, RoomInfo e)
+        {
+            Dispatcher.BeginInvoke(new Action(() => {
+                joinedRooms.Add(e.Name);
+                JoinedRoomList.SelectedIndex = joinedRooms.Count - 1;
+            }));
+        }
+
+        void Client_LeavedFromRoom(object sender, RoomInfo e)
+        {
+            Dispatcher.BeginInvoke(new Action(() => joinedRooms.Remove(e.Name)));
         }
 
         void Client_SystemMessageReceived(object sender, Client.SystemMessageEventArgs e)

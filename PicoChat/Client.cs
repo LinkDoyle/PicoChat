@@ -28,13 +28,16 @@ namespace PicoChat
         NetworkStream stream_;
         string name;
         CancellationTokenSource cts_ = new CancellationTokenSource();
-
+        
         public string Name => name;
         public bool Connected { get => state_ == ConectionState.CONNECTED; }
         public IPAddress ServerAddress { get; set; }
         public int ServerPort { get; set; }
+        public string CurrentRoomName { get; set; }
 
         public event EventHandler<Message> MessageReceived;
+        public event EventHandler<RoomInfo> LeavedFromRoom;
+        public event EventHandler<RoomInfo> JoinedInRoom;
         public event EventHandler<ConectionState> StateChaged;
         public event EventHandler<SocketException> SocketExceptionRaising;
         public event EventHandler<SystemMessageEventArgs> SystemMessageReceived;
@@ -141,6 +144,18 @@ namespace PicoChat
                                     {
                                         Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(data));
                                         MessageReceived?.Invoke(this, message);
+                                    }
+                                    break;
+                                case MessageType.SYSTEM_JOIN_ROOM_OK:
+                                    {
+                                        RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(data));
+                                        JoinedInRoom?.Invoke(this, roomInfo);
+                                    }
+                                    break;
+                                case MessageType.SYSTEM_LEAVE_ROOM_OK:
+                                    {
+                                        RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(data));
+                                        LeavedFromRoom?.Invoke(this, roomInfo);
                                     }
                                     break;
                                 default:

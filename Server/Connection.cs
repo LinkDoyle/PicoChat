@@ -77,10 +77,15 @@ namespace PicoChat
             SendMessage(messageType, Encoding.UTF8.GetBytes(content));
         }
 
-        public void SendMessage(Message message)
+        public void SendMessage(MessageType messageType, IMessage message)
         {
             string content = Serializer.Serialize(message);
-            SendMessage(MessageType.CLIENT_MESSAGE, Encoding.UTF8.GetBytes(content));
+            SendMessage(messageType, Encoding.UTF8.GetBytes(content));
+        }
+
+        public void SendMessage(IMessage message)
+        {
+            SendMessage(MessageType.CLIENT_MESSAGE, message);
         }
 
         string ReceiveMessage()

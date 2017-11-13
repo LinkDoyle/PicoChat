@@ -5,27 +5,62 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PicoChat"
         mc:Ignorable="d"
-        Title="PicoChat" Height="402.44" Width="590.854" WindowStartupLocation="CenterScreen"
-        Loaded="Window_Loaded">
+        Title="PicoChat"
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded"
+        Width="600" Height="400"
+        MinWidth="600" MinHeight="400"
+        >
     <Grid>
-
-        <Button x:Name="sendButton" Content="Send" Margin="0,0,10,10" Height="25" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="99"/>
-        <TextBox x:Name="messageToSendBox" Margin="10,0,114,10" TextWrapping="Wrap" Height="25" VerticalAlignment="Bottom" FontSize="14"/>
-        <ListView Margin="10,10,10,40" Name="messageListView" ItemsSource="{Binding}" IsSynchronizedWithCurrentItem="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel>
-                        <WrapPanel>
-                            <TextBlock Text="{Binding Room}" Foreground="BlueViolet"/>
-                            <TextBlock Text=" " />
-                            <TextBlock Text="{Binding Name}" Foreground="BlueViolet"/>
-                            <TextBlock Text=" " />
-                            <TextBlock Text="{Binding UtcTime}" Foreground="ForestGreen" />
-                        </WrapPanel>
-                        <TextBlock FontFamily="Consolas" Margin="10, 0, 0, 10" Text="{Binding Content}" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="45" />
+        </Grid.RowDefinitions>
+        <Grid Margin="0,0,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <ListBox Margin="10,10,5,0" x:Name="JoinedRoomList" SelectionChanged="JoinedRoomList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding }"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <ListView Margin="5,10,10,0" Name="messageListView" ItemsSource="{Binding}" IsSynchronizedWithCurrentItem="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Grid.Column="1">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <WrapPanel>
+                                <TextBlock Text="{Binding Room}" Foreground="BlueViolet"/>
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding Name}" Foreground="BlueViolet"/>
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding UtcTime}" Foreground="ForestGreen" />
+                            </WrapPanel>
+                            <TextBlock FontFamily="Consolas" Margin="10, 0, 0, 10" Text="{Binding Content}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="120"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <TextBox Grid.Column ="0" x:Name="messageToSendBox" Margin="10,10,5,10" TextWrapping="Wrap" FontSize="14"/>
+            <Button Grid.Column ="1" x:Name="sendButton" Content="Send" Margin="5,10,10,10"/>
+        </Grid>
     </Grid>
 </Window>

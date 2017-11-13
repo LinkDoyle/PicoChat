@@ -16,6 +16,8 @@ namespace PicoChat.Common
         SYSTEM_LOGIN_OK,
         SYSTEM_LOGIN_FAILED,
         SYSTEM_UNJOIN_ROOM,
+        SYSTEM_JOIN_ROOM_OK,
+        SYSTEM_LEAVE_ROOM_OK,
 
         CLIENT_LOGIN,
         CLIENT_LOGOUT,
@@ -32,8 +34,12 @@ namespace PicoChat.Common
         public const int MESSAGE_TYPE_LENGTH = 4;
     }
 
+    public interface IMessage
+    {
+    }
+
     [XmlRoot]
-    public class RoomInfo : IEquatable<RoomInfo>
+    public class RoomInfo : IMessage, IEquatable<RoomInfo>
     {
         public RoomInfo() : this(null)
         {
@@ -80,7 +86,7 @@ namespace PicoChat.Common
     }
 
     [XmlRoot]
-    public class Message
+    public class Message : IMessage
     {
         [XmlAttribute]
         public DateTime UtcTime { get; set; }
@@ -143,7 +149,7 @@ namespace PicoChat.Common
             return Encoding.UTF8.GetBytes(Serialize(message));
         }
 
-        public static string Serialize(object @object)
+        public static string Serialize(IMessage @object)
         {
 
             XmlSerializer xmlSerializer = new XmlSerializer(@object.GetType());
@@ -154,7 +160,7 @@ namespace PicoChat.Common
             }
         }
 
-        public static T Deserialize<T>(string message)
+        public static T Deserialize<T>(string message) where T : IMessage
         {
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
             using (StringReader textReader = new StringReader(message))

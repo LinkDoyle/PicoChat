@@ -212,7 +212,7 @@ namespace PicoChat
                         if (room.Add(@this))
                         {
                             lock (@this.JoinedRooms) @this.JoinedRooms.Add(room.Name);
-                            @this.SendMessage(MessageType.SYSTEM_OK, $"Joined the room[{room.Name}]");
+                            @this.SendMessage(MessageType.SYSTEM_JOIN_ROOM_OK, new RoomInfo(room.Name));
                             Console.WriteLine($"{@this.ClientName} [{remoteEndPoint.Address}:{remoteEndPoint.Port}] joined the room[{room.Name}].");
                         }
                         else
@@ -242,7 +242,7 @@ namespace PicoChat
 
                             IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
                             Console.WriteLine($"{@this.ClientName} [{endPoint.Address}:{endPoint.Port}] left the room [{room.Name}]");
-                            @this.SendMessage(MessageType.SYSTEM_OK, $"Left from the room[{roomName}]");
+                            @this.SendMessage(MessageType.SYSTEM_LEAVE_ROOM_OK, new RoomInfo(room.Name));
                             Console.WriteLine($"\"{@this.ClientName}\" [{remoteEndPoint.Address}:{remoteEndPoint.Port}] left the room[{room.Name}].");
                         }
                         else
@@ -286,9 +286,13 @@ namespace PicoChat
                         @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
                         return;
                     }
-                    else if (message.Room == null)
+                    else if (string.IsNullOrEmpty(message.Room))
                     {
                         @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+                    }
+                    else if(!@this.JoinedRooms.Contains(message.Room))
+                    {
+                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, $"Please joinned in the room {message.Room} first.");
                     }
                     else if (Rooms.TryGetValue(message.Room, out Room room))
                     {
