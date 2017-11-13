@@ -35,9 +35,12 @@ namespace PicoChat
         public int ServerPort { get; set; }
         public string CurrentRoomName { get; set; }
 
-        public event EventHandler<Message> MessageReceived;
+        public event EventHandler<LoginInfo> LoginOK;
+        public event EventHandler<LoginInfo> LoginFailed;
+        public event EventHandler LogoutOK;
         public event EventHandler<RoomInfo> LeavedFromRoom;
         public event EventHandler<RoomInfo> JoinedInRoom;
+        public event EventHandler<Message> MessageReceived;
         public event EventHandler<ConectionState> StateChaged;
         public event EventHandler<SocketException> SocketExceptionRaising;
         public event EventHandler<SystemMessageEventArgs> SystemMessageReceived;
@@ -140,10 +143,17 @@ namespace PicoChat
                             Debug.WriteLine($"Received message type: {type.ToString()}");
                             switch (type)
                             {
-                                case MessageType.CLIENT_MESSAGE:
+                                case MessageType.SYSTEM_LOGIN_OK:
                                     {
-                                        Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(data));
-                                        MessageReceived?.Invoke(this, message);
+                                        LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(data));
+                                        name = info.Name;
+                                        LoginOK?.Invoke(this, info);
+                                    }
+                                    break;
+                                case MessageType.SYSTEM_LOGIN_FAILED:
+                                    {
+                                        LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(data));
+                                        LoginFailed?.Invoke(this, info);
                                     }
                                     break;
                                 case MessageType.SYSTEM_JOIN_ROOM_OK:
@@ -158,6 +168,18 @@ namespace PicoChat
                                         LeavedFromRoom?.Invoke(this, roomInfo);
                                     }
                                     break;
+                                case MessageType.CLIENT_MESSAGE:
+                                    {
+                                        Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(data));
+                                        MessageReceived?.Invoke(this, message);
+                                    }
+                                    break;
+                                case MessageType.CLIENT_LOGOUT:
+                                    {
+                                        name = null;
+                                        LogoutOK?.Invoke(this, null);
+                                        goto default;
+                                    }
                                 default:
                                     SystemMessageReceived?.Invoke(this, new SystemMessageEventArgs(type, data));
                                     break;
@@ -224,7 +246,6 @@ namespace PicoChat
 
         public void Login(string name)
         {
-            this.name = name;
             Send(MessageType.CLIENT_LOGIN, Encoding.UTF8.GetBytes(name));
         }
 

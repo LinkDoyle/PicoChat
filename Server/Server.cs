@@ -143,12 +143,16 @@ namespace PicoChat
                             {
                                 connections.Add(name, @this);
                                 @this.ClientName = name;
-                                @this.SendMessage(MessageType.SYSTEM_LOGIN_OK, $"Hello {@this.ClientName}~");
+                                @this.SendMessage(
+                                    MessageType.SYSTEM_LOGIN_OK,
+                                    new LoginInfo(@this.ClientName, $"Hello {@this.ClientName}~"));
                                 Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} logged in as \"{@this.ClientName}\".");
                             }
                             else
                             {
-                                @this.SendMessage(MessageType.SYSTEM_LOGIN_FAILED, $"Sorry, the name \"{name}\" is already taken");
+                                @this.SendMessage(
+                                    MessageType.SYSTEM_LOGIN_FAILED,
+                                    new LoginInfo(@this.ClientName, $"Sorry, the name \"{name}\" is already taken"));
                             }
                         }
                     }
@@ -290,7 +294,7 @@ namespace PicoChat
                     {
                         @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
                     }
-                    else if(!@this.JoinedRooms.Contains(message.Room))
+                    else if (!@this.JoinedRooms.Contains(message.Room))
                     {
                         @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, $"Please joinned in the room {message.Room} first.");
                     }

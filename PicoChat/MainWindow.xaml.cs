@@ -177,6 +177,9 @@ namespace PicoChat
         void Window_Loaded(object sender, RoutedEventArgs e)
         {
             client.SystemMessageReceived += Client_SystemMessageReceived;
+            client.LoginOK += Client_LoginOK;
+            client.LoginFailed += Client_LoginFailed;
+            client.LogoutOK += Client_LogoutOK;
             client.JoinedInRoom += Client_JoinedInRoom;
             client.LeavedFromRoom += Client_LeavedFromRoom;
             client.MessageReceived += Client_MessageReceived;
@@ -189,19 +192,40 @@ namespace PicoChat
             if (JoinedRoomList.SelectedIndex != -1)
             {
                 client.CurrentRoomName = JoinedRoomList.SelectedItem.ToString();
-                Title = $"{APP_NAME} - [{client.CurrentRoomName}]";
+                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}]";
             }
             else
             {
                 client.CurrentRoomName = null;
-                Title = $"{APP_NAME}";
+                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}]";
             }
 
         }
 
-        void Client_JoinedInRoom(object sender, RoomInfo e)
+        void Client_LoginOK(object sender, LoginInfo e)
         {
             Dispatcher.BeginInvoke(new Action(() => {
+                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}]";
+                FireInfo(e.Content);
+            }));
+        }
+
+        void Client_LoginFailed(object sender, LoginInfo e)
+        {
+            Dispatcher.BeginInvoke(new Action(() => FireError(e.Content)));
+        }
+
+        void Client_LogoutOK(object sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() => {
+                Title = $"{APP_NAME} - - [{client.CurrentRoomName}]";
+            }));
+        }
+
+        void Client_JoinedInRoom(object sender, RoomInfo e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
                 joinedRooms.Add(e.Name);
                 JoinedRoomList.SelectedIndex = joinedRooms.Count - 1;
             }));

@@ -34,11 +34,31 @@ namespace PicoChat.Common
         public const int MESSAGE_TYPE_LENGTH = 4;
     }
 
+    [XmlRoot]
     public interface IMessage
     {
     }
 
-    [XmlRoot]
+    public class LoginInfo : IMessage
+    {
+        public LoginInfo() : this(null, null)
+        {
+
+        }
+
+        public LoginInfo(string name, string content)
+        {
+            Name = name;
+            Content = content;
+        }
+
+        [XmlAttribute]
+        public string Name { get; set; }
+
+        [XmlElement]
+        public string Content { get; set; }
+    }
+
     public class RoomInfo : IMessage, IEquatable<RoomInfo>
     {
         public RoomInfo() : this(null)
@@ -85,7 +105,6 @@ namespace PicoChat.Common
         }
     }
 
-    [XmlRoot]
     public class Message : IMessage
     {
         [XmlAttribute]
