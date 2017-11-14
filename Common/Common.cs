@@ -7,7 +7,7 @@ using System.Xml.Serialization;
 
 namespace PicoChat.Common
 {
-    public enum MessageType
+    public enum MessageType : Int16
     {
         SYSTEM_OK,
         SYSTEM_ERROR,
@@ -32,6 +32,53 @@ namespace PicoChat.Common
     public static class Constants
     {
         public const int MESSAGE_TYPE_LENGTH = 4;
+    }
+
+    public struct DataPackage
+    {
+        public Int16 Version;
+        public MessageType Type;
+        public Int32 Length;
+        public Byte[] Data;
+
+        public DataPackage(MessageType messageType, byte[] data)
+        {
+            Version = 0;
+            Type = messageType;
+            Length = data.Length;
+            Data = data;
+        }
+
+        public static DataPackage FromStream(Stream stream)
+        {
+            using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8, true))
+            {
+                DataPackage dataPackage = new DataPackage
+                {
+                    Version = reader.ReadInt16(),
+                    Type = (MessageType)reader.ReadInt16(),
+                    Length = reader.ReadInt32()
+                };
+                if (!Enum.IsDefined(typeof(MessageType), dataPackage.Type))
+                    dataPackage.Type = MessageType.SYSTEM_UNKNOWN;
+                dataPackage.Data = reader.ReadBytes(dataPackage.Length);
+                return dataPackage;
+            }
+        }
+    }
+
+    public static class Extension
+    {
+        public static void Write(this Stream stream, DataPackage dataPackage)
+        {
+            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8, true))
+            {
+                writer.Write(dataPackage.Version);
+                writer.Write((Int16)dataPackage.Type);
+                writer.Write(dataPackage.Data.Length);
+                writer.Write(dataPackage.Data);
+            }
+        }
     }
 
     [XmlRoot]

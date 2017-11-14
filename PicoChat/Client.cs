@@ -28,7 +28,7 @@ namespace PicoChat
         NetworkStream stream_;
         string name;
         CancellationTokenSource cts_ = new CancellationTokenSource();
-        
+
         public string Name => name;
         public bool Connected { get => state_ == ConectionState.CONNECTED; }
         public IPAddress ServerAddress { get; set; }
@@ -123,83 +123,75 @@ namespace PicoChat
             {
                 logging_.Debug("Receiver task");
                 //stream.ReadTimeout = 5000;
-                using (BinaryReader binaryReader = new BinaryReader(stream, Encoding.UTF8, true))
+                try
                 {
-                    try
+                    while (true)
                     {
-                        while (true)
+                        if (cts.Token.IsCancellationRequested)
                         {
-                            if (cts.Token.IsCancellationRequested)
-                            {
-                                cts.Token.ThrowIfCancellationRequested();
+                            cts.Token.ThrowIfCancellationRequested();
+                            break;
+                        }
+                        DataPackage dataPackage = DataPackage.FromStream(stream);
+                        Debug.WriteLine($"Received message type: {dataPackage.Type.ToString()}");
+                        switch (dataPackage.Type)
+                        {
+                            case MessageType.SYSTEM_LOGIN_OK:
+                                {
+                                    LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    name = info.Name;
+                                    LoginOK?.Invoke(this, info);
+                                }
                                 break;
-                            }
-                            int typeValue = binaryReader.ReadInt32();
-                            MessageType type = Enum.IsDefined(typeof(MessageType), typeValue)
-                                ? (MessageType)typeValue
-                                : MessageType.SYSTEM_UNKNOWN;
-                            int length = binaryReader.ReadInt32();
-                            byte[] data = binaryReader.ReadBytes(length);
-                            Debug.WriteLine($"Received message type: {type.ToString()}");
-                            switch (type)
-                            {
-                                case MessageType.SYSTEM_LOGIN_OK:
-                                    {
-                                        LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(data));
-                                        name = info.Name;
-                                        LoginOK?.Invoke(this, info);
-                                    }
-                                    break;
-                                case MessageType.SYSTEM_LOGIN_FAILED:
-                                    {
-                                        LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(data));
-                                        LoginFailed?.Invoke(this, info);
-                                    }
-                                    break;
-                                case MessageType.SYSTEM_JOIN_ROOM_OK:
-                                    {
-                                        RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(data));
-                                        JoinedInRoom?.Invoke(this, roomInfo);
-                                    }
-                                    break;
-                                case MessageType.SYSTEM_LEAVE_ROOM_OK:
-                                    {
-                                        RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(data));
-                                        LeavedFromRoom?.Invoke(this, roomInfo);
-                                    }
-                                    break;
-                                case MessageType.CLIENT_MESSAGE:
-                                    {
-                                        Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(data));
-                                        MessageReceived?.Invoke(this, message);
-                                    }
-                                    break;
-                                case MessageType.CLIENT_LOGOUT:
-                                    {
-                                        name = null;
-                                        LogoutOK?.Invoke(this, null);
-                                        goto default;
-                                    }
-                                default:
-                                    SystemMessageReceived?.Invoke(this, new SystemMessageEventArgs(type, data));
-                                    break;
-                            }
+                            case MessageType.SYSTEM_LOGIN_FAILED:
+                                {
+                                    LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    LoginFailed?.Invoke(this, info);
+                                }
+                                break;
+                            case MessageType.SYSTEM_JOIN_ROOM_OK:
+                                {
+                                    RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    JoinedInRoom?.Invoke(this, roomInfo);
+                                }
+                                break;
+                            case MessageType.SYSTEM_LEAVE_ROOM_OK:
+                                {
+                                    RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    LeavedFromRoom?.Invoke(this, roomInfo);
+                                }
+                                break;
+                            case MessageType.CLIENT_MESSAGE:
+                                {
+                                    Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(dataPackage.Data));
+                                    MessageReceived?.Invoke(this, message);
+                                }
+                                break;
+                            case MessageType.CLIENT_LOGOUT:
+                                {
+                                    name = null;
+                                    LogoutOK?.Invoke(this, null);
+                                    goto default;
+                                }
+                            default:
+                                SystemMessageReceived?.Invoke(this, new SystemMessageEventArgs(dataPackage.Type, dataPackage.Data));
+                                break;
                         }
                     }
-                    catch (OperationCanceledException ex)
+                }
+                catch (OperationCanceledException ex)
+                {
+                    logging_.Debug(ex);
+                }
+                catch (IOException ex)
+                {
+                    if (ex.InnerException is SocketException)
+                    {
+                        SocketExceptionRaising?.Invoke(this, (SocketException)ex.InnerException);
+                    }
+                    else
                     {
                         logging_.Debug(ex);
-                    }
-                    catch (IOException ex)
-                    {
-                        if (ex.InnerException is SocketException)
-                        {
-                            SocketExceptionRaising?.Invoke(this, (SocketException)ex.InnerException);
-                        }
-                        else
-                        {
-                            logging_.Debug(ex);
-                        }
                     }
                 }
                 logging_.Debug("Receiver task exited");
@@ -219,19 +211,7 @@ namespace PicoChat
                 FireInfo("PLEASE USE /connect TO CONNECT");
                 return;
             }
-            using (BinaryWriter writer = new BinaryWriter(stream_, Encoding.UTF8, true))
-            {
-                writer.Write((uint)type);
-                if (content != null)
-                {
-                    writer.Write(content.Length);
-                    writer.Write(content);
-                }
-                else
-                {
-                    writer.Write(0);
-                }
-            }
+            stream_.Write(new DataPackage(type, content));
         }
 
         void FireInfo(string message)

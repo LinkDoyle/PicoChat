@@ -50,21 +50,9 @@ namespace PicoChat
             socket = null;
         }
 
-        public void SendMessage(MessageType messageType, byte[] content)
+        void SendMessage(MessageType messageType, byte[] content)
         {
-            using (BinaryWriter writer = new BinaryWriter(networkStream, Encoding.UTF8, true))
-            {
-                writer.Write((uint)messageType);
-                if(content != null)
-                {
-                    writer.Write(content.Length);
-                    writer.Write(content);
-                }
-                else
-                {
-                    writer.Write(0);
-                }
-            }
+            networkStream.Write(new DataPackage(messageType, content));
         }
 
         public void SendMessage(MessageType messageType)
@@ -141,64 +129,56 @@ namespace PicoChat
         public void Handle()
         {
             IPEndPoint endPoint = (IPEndPoint)socket.RemoteEndPoint;
-            using (BinaryReader binaryReader = new BinaryReader(networkStream, Encoding.UTF8, true))
+            try
             {
-                try
+                do
                 {
-                    do
+                    DataPackage package = DataPackage.FromStream(networkStream);
+                    Debug.WriteLine($"Client [{endPoint.Address}:{endPoint.Port}] message type: {package.Type.ToString()}");
+                    switch (package.Type)
                     {
-                        int typeValue = binaryReader.ReadInt32();
-                        MessageType type = Enum.IsDefined(typeof(MessageType), typeValue)
-                            ? (MessageType)typeValue
-                            : MessageType.SYSTEM_UNKNOWN;
-                        int length = binaryReader.ReadInt32();
-                        byte[] data = binaryReader.ReadBytes(length);
-                        Debug.WriteLine($"Client [{endPoint.Address}:{endPoint.Port}] message type: {type.ToString()}");
-                        switch (type)
-                        {
-                            case MessageType.CLIENT_LOGIN:
-                                OnLogin(data);
-                                break;
-                            case MessageType.CLIENT_LOGOUT:
-                                OnLogout();
-                                break;
-                            case MessageType.CLIENT_MESSAGE:
-                                OnMessageReceived(data);
-                                break;
-                            case MessageType.CLIENT_JOIN_ROOM:
-                                OnJoinRoom(data);
-                                break;
-                            case MessageType.CLIENT_LIST_JOINED_ROOMS:
-                                OnListJoinedRooms();
-                                break;
-                            case MessageType.CLIENT_LEAVE_ROOM:
-                                OnLeaveRoom(data);
-                                break;
-                        }
+                        case MessageType.CLIENT_LOGIN:
+                            OnLogin(package.Data);
+                            break;
+                        case MessageType.CLIENT_LOGOUT:
+                            OnLogout();
+                            break;
+                        case MessageType.CLIENT_MESSAGE:
+                            OnMessageReceived(package.Data);
+                            break;
+                        case MessageType.CLIENT_JOIN_ROOM:
+                            OnJoinRoom(package.Data);
+                            break;
+                        case MessageType.CLIENT_LIST_JOINED_ROOMS:
+                            OnListJoinedRooms();
+                            break;
+                        case MessageType.CLIENT_LEAVE_ROOM:
+                            OnLeaveRoom(package.Data);
+                            break;
+                    }
 
-                    } while (!closed);
-                }
-                catch (SocketException ex)
-                {
-                    Debug.WriteLine($"Client {endPoint.Address}:{endPoint.Port} : {ex.Message}");
-                }
-                catch (EndOfStreamException ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                }
-                catch(IOException ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    throw;
-                }
-                finally
-                {
-                    Close();
-                }
+                } while (!closed);
+            }
+            catch (SocketException ex)
+            {
+                Debug.WriteLine($"Client {endPoint.Address}:{endPoint.Port} : {ex.Message}");
+            }
+            catch (EndOfStreamException ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+            catch (IOException ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                throw;
+            }
+            finally
+            {
+                Close();
             }
         }
     }
