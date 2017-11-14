@@ -76,44 +76,52 @@ namespace PicoChat
         public void Start()
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(new IPEndPoint(Address, Port));
-            socket.Listen(backlog: 1024);
-
-            Console.WriteLine($"Listening on {Address}:{Port}...");
-
-            var tf = new TaskFactory(TaskCreationOptions.LongRunning, TaskContinuationOptions.None);
-            tf.StartNew(() =>
+            try
             {
-                Console.WriteLine("Listener task started");
-                while (true)
+                socket.Bind(new IPEndPoint(Address, Port));
+                socket.Listen(backlog: 1024);
+                Console.WriteLine($"Listening on {Address}:{Port}...");
+
+                var tf = new TaskFactory(TaskCreationOptions.LongRunning, TaskContinuationOptions.None);
+                tf.StartNew(() =>
                 {
-                    if (cts.Token.IsCancellationRequested)
+                    Console.WriteLine("Listener task started");
+                    while (true)
                     {
-                        cts.Token.ThrowIfCancellationRequested();
-                        break;
-                    }
-                    Console.WriteLine("Waiting for accept...");
-                    Socket client = socket.Accept();
-                    if (!client.Connected)
-                    {
-                        Console.WriteLine("Not connected");
-                        continue;
-                    }
-                    IPEndPoint remoteEndPoint = (IPEndPoint)client.RemoteEndPoint;
-                    Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} connected; " +
-                        $"Current connection: {Interlocked.Increment(ref clientCount_)}");
+                        if (cts.Token.IsCancellationRequested)
+                        {
+                            cts.Token.ThrowIfCancellationRequested();
+                            break;
+                        }
+                        Console.WriteLine("Waiting for accept...");
+                        Socket client = socket.Accept();
+                        if (!client.Connected)
+                        {
+                            Console.WriteLine("Not connected");
+                            continue;
+                        }
+                        IPEndPoint remoteEndPoint = (IPEndPoint)client.RemoteEndPoint;
+                        Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} connected; " +
+                            $"Current connection: {Interlocked.Increment(ref clientCount_)}");
 
-                    Task task = CommunicateWithClientUsingSocketAsync(client);
-                    task.GetAwaiter().OnCompleted(() =>
-                    {
-                        Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} disconnected; " +
-                            $"Current connection: {Interlocked.Decrement(ref clientCount_)}");
-                    });
-                }
+                        Task task = CommunicateWithClientUsingSocketAsync(client);
+                        task.GetAwaiter().OnCompleted(() =>
+                        {
+                            Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} disconnected; " +
+                                $"Current connection: {Interlocked.Decrement(ref clientCount_)}");
+                        });
+                    }
 
-                socket.Dispose();
-                Console.WriteLine("The sever is closed.");
-            }, cts.Token);
+                    socket.Dispose();
+                    Console.WriteLine("The sever is closed.");
+                }, cts.Token);
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine($"Failed to Listening on {Address}:{Port}...");
+                Console.WriteLine(ex.Message);
+                Debug.WriteLine(ex.StackTrace);
+            }
         }
 
         public void Stop()
