@@ -58,6 +58,7 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializerTests.cs" />
+    <Compile Include="ServerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -66,6 +67,14 @@
     <ProjectReference Include="..\Common\Common.csproj">
       <Project>{973324DA-9C6F-48CD-87C0-EFB0EDD7986E}</Project>
       <Name>Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PicoChat\PicoChat.csproj">
+      <Project>{9e063619-7694-428d-87b2-9880039467e2}</Project>
+      <Name>PicoChat</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Server\Server.csproj">
+      <Project>{577D94B5-5A3B-484C-9A3A-36F94A0EB3EA}</Project>
+      <Name>Server</Name>
     </ProjectReference>
   </ItemGroup>
   <Choose>

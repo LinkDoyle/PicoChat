@@ -24,20 +24,26 @@ namespace PicoChat
         readonly LinkedList<Connection> connections = new LinkedList<Connection>();
         public bool Add(Connection connection)
         {
-            if (!connections.Contains(connection))
+            lock (connections)
             {
-                connections.AddFirst(connection);
-                return true;
+                if (!connections.Contains(connection))
+                {
+                    connections.AddFirst(connection);
+                    return true;
+                }
             }
             return false;
         }
 
         public bool Remove(Connection connection)
         {
-            if (connections.Contains(connection))
+            lock (connections)
             {
-                connections.Remove(connection);
-                return true;
+                if (connections.Contains(connection))
+                {
+                    connections.Remove(connection);
+                    return true;
+                }
             }
             return false;
         }
@@ -45,11 +51,14 @@ namespace PicoChat
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void SendMessage(Message message)
         {
-            foreach (var connection in connections)
+            lock (connections)
             {
-                if (!connection.ClientName.Equals(message.Name))
+                foreach (var connection in connections)
                 {
-                    connection.SendMessage(message);
+                    if (!connection.ClientName.Equals(message.Name))
+                    {
+                        connection.SendMessage(MessageType.CLIENT_MESSAGE, message);
+                    }
                 }
             }
         }
@@ -131,218 +140,212 @@ namespace PicoChat
 
         Task CommunicateWithClientUsingSocketAsync(Socket socket)
         {
-            return Task.Run(() =>
+            Connection connection = new Connection(socket);
+            IPEndPoint remoteEndPoint = (IPEndPoint)socket.RemoteEndPoint;
+            connection.Login += (sender, name) =>
             {
-                Connection connection = new Connection(socket);
-                IPEndPoint remoteEndPoint = (IPEndPoint)socket.RemoteEndPoint;
-                connection.Login += (sender, name) =>
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                if (@this.ClientName != null)
                 {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                    if (@this.ClientName != null)
-                    {
-                        @this.SendMessage(MessageType.SYSTEM_LOGIN_FAILED, $"Already logged as \"{@this.ClientName}\"");
-                    }
-                    else
-                    {
-                        lock (connections)
-                        {
-                            if (!connections.ContainsKey(name))
-                            {
-                                connections.Add(name, @this);
-                                @this.ClientName = name;
-                                @this.SendMessage(
-                                    MessageType.SYSTEM_LOGIN_OK,
-                                    new LoginInfo(@this.ClientName, $"Hello {@this.ClientName}~"));
-                                Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} logged in as \"{@this.ClientName}\".");
-                            }
-                            else
-                            {
-                                @this.SendMessage(
-                                    MessageType.SYSTEM_LOGIN_FAILED,
-                                    new LoginInfo(@this.ClientName, $"Sorry, the name \"{name}\" is already taken"));
-                            }
-                        }
-                    }
-                };
-
-                connection.Logout += (sender, name) =>
+                    @this.SendMessage(MessageType.SYSTEM_LOGIN_FAILED, $"Already logged as \"{@this.ClientName}\"");
+                }
+                else
                 {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                    if (@this.ClientName == null)
-                    {
-                        @this.SendMessage(MessageType.NO_LOGGED);
-                        return;
-                    }
                     lock (connections)
                     {
-                        if (connections.ContainsKey(@this.ClientName))
+                        if (!connections.ContainsKey(name))
                         {
-                            lock (@this.JoinedRooms)
+                            connections.Add(name, @this);
+                            @this.ClientName = name;
+                            @this.SendMessage(
+                                MessageType.SYSTEM_LOGIN_OK,
+                                new LoginInfo(@this.ClientName, $"Hello {@this.ClientName}~"));
+                            Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} logged in as \"{@this.ClientName}\".");
+                        }
+                        else
+                        {
+                            @this.SendMessage(
+                                MessageType.SYSTEM_LOGIN_FAILED,
+                                new LoginInfo(@this.ClientName, $"Sorry, the name \"{name}\" is already taken"));
+                        }
+                    }
+                }
+            };
+            connection.Logout += (sender, name) =>
+            {
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                if (@this.ClientName == null)
+                {
+                    @this.SendMessage(MessageType.NO_LOGGED);
+                    return;
+                }
+                lock (connections)
+                {
+                    if (connections.ContainsKey(@this.ClientName))
+                    {
+                        lock (@this.JoinedRooms)
+                        {
+                            @this.JoinedRooms.ForEach(rname =>
                             {
-                                @this.JoinedRooms.ForEach(rname =>
+                                if (Rooms.TryGetValue(rname, out Room room))
                                 {
-                                    if (Rooms.TryGetValue(rname, out Room room))
-                                    {
-                                        room.Remove(@this);
-                                    }
-                                });
-                            }
-
-                            @this.SendMessage(MessageType.SYSTEM_OK, $"Logged out");
-                            Console.WriteLine($"\"{@this.ClientName}\" [{remoteEndPoint.Address}:{remoteEndPoint.Port}] logged out.");
-
-                            connections.Remove(@this.ClientName);
-                            @this.ClientName = null;
+                                    room.Remove(@this);
+                                }
+                            });
                         }
-                        else
-                        {
-                            @this.SendMessage(MessageType.NO_LOGGED);
-                        }
-                    }
 
-                };
+                        @this.SendMessage(MessageType.SYSTEM_OK, $"Logged out");
+                        Console.WriteLine($"\"{@this.ClientName}\" [{remoteEndPoint.Address}:{remoteEndPoint.Port}] logged out.");
 
-                connection.JoinRoom += (sender, roomName) =>
-                {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                    if (@this.ClientName == null)
-                    {
-                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
-                        return;
-                    }
-                    lock (Rooms)
-                    {
-                        if (!Rooms.ContainsKey(roomName))
-                        {
-                            Rooms.Add(roomName, new Room(roomName));
-                            Console.WriteLine($"Room[roomName] created.");
-                        }
-                        Room room = Rooms[roomName];
-                        if (room.Add(@this))
-                        {
-                            lock (@this.JoinedRooms) @this.JoinedRooms.Add(room.Name);
-                            @this.SendMessage(MessageType.SYSTEM_JOIN_ROOM_OK, new RoomInfo(room.Name));
-                            Console.WriteLine($"{@this.ClientName} [{remoteEndPoint.Address}:{remoteEndPoint.Port}] joined the room[{room.Name}].");
-                        }
-                        else
-                        {
-                            @this.SendMessage(MessageType.ALREADY_JOINNED, $"Already joined the room[{room.Name}]");
-                        }
-                    }
-                };
-
-                connection.LeaveRoom += (sender, roomName) =>
-                {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                    if (@this.ClientName == null)
-                    {
-                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
-                        return;
-                    }
-
-                    lock (Rooms)
-                    {
-                        if (Rooms.ContainsKey(roomName))
-                        {
-                            Room room = Rooms[roomName];
-                            room.Remove(@this);
-                            lock (@this.JoinedRooms) @this.JoinedRooms.Remove(room.Name);
-
-                            IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
-                            Console.WriteLine($"{@this.ClientName} [{endPoint.Address}:{endPoint.Port}] left the room [{room.Name}]");
-                            @this.SendMessage(MessageType.SYSTEM_LEAVE_ROOM_OK, new RoomInfo(room.Name));
-                            Console.WriteLine($"\"{@this.ClientName}\" [{remoteEndPoint.Address}:{remoteEndPoint.Port}] left the room[{room.Name}].");
-                        }
-                        else
-                        {
-                            @this.SendMessage(MessageType.SYSTEM_ERROR, $"No joinned the room[{roomName}]");
-                        }
-                    }
-                };
-
-                connection.ListRooms += (sender, e) =>
-                {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                    if (@this.ClientName == null)
-                    {
-                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
-                        return;
-                    }
-                    StringBuilder stringBuilder = new StringBuilder();
-                    lock (@this.JoinedRooms)
-                    {
-                        @this.JoinedRooms.ForEach(r =>
-                        {
-                            stringBuilder.Append(r);
-                            stringBuilder.Append('\n');
-                        });
-                    }
-                    @this.SendMessage(MessageType.CLIENT_LIST_JOINED_ROOMS, stringBuilder.ToString());
-                };
-
-                connection.MessageReceived += (sender, message) =>
-                {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                    if (message == null)
-                    {
-                        @this.SendMessage(MessageType.SYSTEM_ERROR);
-                    }
-                    else if (@this.ClientName == null || !@this.ClientName.Equals(message.Name))
-                    {
-                        @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
-                        return;
-                    }
-                    else if (string.IsNullOrEmpty(message.Room))
-                    {
-                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
-                    }
-                    else if (!@this.JoinedRooms.Contains(message.Room))
-                    {
-                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, $"Please joinned in the room {message.Room} first.");
-                    }
-                    else if (Rooms.TryGetValue(message.Room, out Room room))
-                    {
-                        room.SendMessage(message);
+                        connections.Remove(@this.ClientName);
+                        @this.ClientName = null;
                     }
                     else
                     {
-                        @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+                        @this.SendMessage(MessageType.NO_LOGGED);
                     }
-                };
+                }
 
-                connection.Closing += (sender, e) =>
+            };
+            connection.JoinRoom += (sender, roomName) =>
+            {
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                if (@this.ClientName == null)
                 {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                    lock (Rooms)
+                    @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
+                    return;
+                }
+                lock (Rooms)
+                {
+                    if (!Rooms.ContainsKey(roomName))
                     {
-                        foreach (string name in @this.JoinedRooms)
+                        Rooms.Add(roomName, new Room(roomName));
+                        Console.WriteLine($"Room[roomName] created.");
+                    }
+                    Room room = Rooms[roomName];
+                    if (room.Add(@this))
+                    {
+                        lock (@this.JoinedRooms) @this.JoinedRooms.Add(room.Name);
+                        @this.SendMessage(MessageType.SYSTEM_JOIN_ROOM_OK, new RoomInfo(room.Name));
+                        Console.WriteLine($"{@this.ClientName} [{remoteEndPoint.Address}:{remoteEndPoint.Port}] joined the room[{room.Name}].");
+                    }
+                    else
+                    {
+                        @this.SendMessage(MessageType.ALREADY_JOINNED, $"Already joined the room[{room.Name}]");
+                    }
+                }
+            };
+            connection.LeaveRoom += (sender, roomName) =>
+            {
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                if (@this.ClientName == null)
+                {
+                    @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
+                    return;
+                }
+
+                lock (Rooms)
+                {
+                    if (Rooms.ContainsKey(roomName))
+                    {
+                        Room room = Rooms[roomName];
+                        room.Remove(@this);
+                        lock (@this.JoinedRooms) @this.JoinedRooms.Remove(room.Name);
+
+                        IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
+                        Console.WriteLine($"{@this.ClientName} [{endPoint.Address}:{endPoint.Port}] left the room [{room.Name}]");
+                        @this.SendMessage(MessageType.SYSTEM_LEAVE_ROOM_OK, new RoomInfo(room.Name));
+                        Console.WriteLine($"\"{@this.ClientName}\" [{remoteEndPoint.Address}:{remoteEndPoint.Port}] left the room[{room.Name}].");
+                    }
+                    else
+                    {
+                        @this.SendMessage(MessageType.SYSTEM_ERROR, $"No joinned the room[{roomName}]");
+                    }
+                }
+            };
+            connection.ListRooms += (sender, e) =>
+            {
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                if (@this.ClientName == null)
+                {
+                    @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
+                    return;
+                }
+                StringBuilder stringBuilder = new StringBuilder();
+                lock (@this.JoinedRooms)
+                {
+                    @this.JoinedRooms.ForEach(r =>
+                    {
+                        stringBuilder.Append(r);
+                        stringBuilder.Append('\n');
+                    });
+                }
+                @this.SendMessage(MessageType.CLIENT_LIST_JOINED_ROOMS, stringBuilder.ToString());
+            };
+            connection.MessageReceived += (sender, message) =>
+            {
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                if (message == null)
+                {
+                    @this.SendMessage(MessageType.SYSTEM_ERROR);
+                }
+                else if (@this.ClientName == null || !@this.ClientName.Equals(message.Name))
+                {
+                    @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
+                    return;
+                }
+                else if (string.IsNullOrEmpty(message.Room))
+                {
+                    @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+                }
+                else if (!@this.JoinedRooms.Contains(message.Room))
+                {
+                    @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, $"Please joinned in the room {message.Room} first.");
+                }
+                else if (Rooms.TryGetValue(message.Room, out Room room))
+                {
+                    room.SendMessage(message);
+                    @this.SendMessage(MessageType.SYSTEM_MESSAGE_OK);
+                }
+                else
+                {
+                    @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+                }
+            };
+            connection.Closed += (sender, e) =>
+            {
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                lock (Rooms)
+                {
+                    foreach (string name in @this.JoinedRooms)
+                    {
+                        if (Rooms.ContainsKey(name))
                         {
-                            if (Rooms.ContainsKey(name))
-                            {
-                                Room room = Rooms[name];
-                                room.Remove(@this);
-                            }
+                            Room room = Rooms[name];
+                            room.Remove(@this);
                         }
                     }
-                    IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
-                    Debug.WriteLine($"Client [{endPoint.Address}:{endPoint.Port}] closed");
-                };
-
-                connection.Closed += (sender, e) =>
+                }
+                if (@this.ClientName != null)
                 {
-                    Connection @this = sender as Connection;
-                    if (@this == null) return;
-                };
-                connection.Handle();
-            });
-        }
+                    lock (connections)
+                    {
+                        connections.Remove(@this.ClientName);
+                    }
+                }
+                IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
+                Debug.WriteLine($"Client [{endPoint.Address}:{endPoint.Port}] closed");
+                connection.Dispose();
+            };
 
+            return Task.Run(() => connection.Handle());
+        }
     }
 }

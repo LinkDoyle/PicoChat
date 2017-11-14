@@ -20,7 +20,7 @@ namespace PicoChat
 #endif
         }
     }
-    class Client
+    public class Client
     {
         Logging logging_ = new Logging();
         ConectionState state_ = ConectionState.DISCONNECTED;
@@ -42,6 +42,7 @@ namespace PicoChat
         public event EventHandler<RoomInfo> JoinedInRoom;
         public event EventHandler<Message> MessageReceived;
         public event EventHandler<ConectionState> StateChaged;
+        public event EventHandler ReceiverTaskExited;
         public event EventHandler<SocketException> SocketExceptionRaising;
         public event EventHandler<SystemMessageEventArgs> SystemMessageReceived;
 
@@ -71,57 +72,42 @@ namespace PicoChat
         public void Connect()
         {
             Debug.Assert(state_ == ConectionState.DISCONNECTED);
-            SendAndReceive();
+            try
+            {
+                socket_ = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket_.Connect(ServerAddress, ServerPort);
+                stream_ = new NetworkStream(socket_);
+
+                state_ = ConectionState.CONNECTED;
+                logging_.Debug("Client successfully connected");
+                StateChaged?.Invoke(this, ConectionState.CONNECTED);
+            }
+            catch (SocketException ex)
+            {
+                SocketExceptionRaising?.Invoke(this, ex);
+                logging_.Debug($"{ex}");
+            }
+        }
+
+        public async Task HandleAsync()
+        {
+            Task task = Receiver(stream_, cts_);
+            task.Start();
+            await task;
         }
 
         public void Disconnect()
         {
             Debug.Assert(state_ == ConectionState.CONNECTED);
+            Send(MessageType.CLIENT_DISCONNECT);
             cts_.Cancel();
         }
-
-        public Task SendAndReceive()
+        
+        Task Receiver(NetworkStream stream, CancellationTokenSource cts)
         {
-            return Task.Run(() =>
+            return new Task(() =>
             {
-                logging_.Debug("SendAndReceive Started.");
-
-                try
-                {
-                    using (socket_ = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-                    {
-                        socket_.Connect(ServerAddress, ServerPort);
-                        state_ = ConectionState.CONNECTED;
-                        logging_.Debug("Client successfully connected");
-                        StateChaged?.Invoke(this, ConectionState.CONNECTED);
-
-                        stream_ = new NetworkStream(socket_);
-                        Task tReceiver = Receiver(stream_, cts_);
-                        tReceiver.Wait();
-                    }
-                }
-                catch (SocketException ex)
-                {
-                    SocketExceptionRaising?.Invoke(this, ex);
-                    logging_.Debug($"{ex}");
-                }
-                catch (Exception ex)
-                {
-                    logging_.Debug($"{ex}");
-                    throw;
-                }
-                state_ = ConectionState.DISCONNECTED;
-                StateChaged?.Invoke(this, (ConectionState)Client.ConectionState.DISCONNECTED);
-
-                logging_.Debug("SendAndReceive Finished.");
-            });
-        }
-
-        public Task Receiver(NetworkStream stream, CancellationTokenSource cts)
-        {
-            return Task.Run(() =>
-            {
-                logging_.Debug("Receiver task");
+                logging_.Debug("Receiver task starting...");
                 //stream.ReadTimeout = 5000;
                 try
                 {
@@ -129,11 +115,9 @@ namespace PicoChat
                     {
                         if (cts.Token.IsCancellationRequested)
                         {
-                            cts.Token.ThrowIfCancellationRequested();
                             break;
                         }
                         DataPackage dataPackage = DataPackage.FromStream(stream);
-                        Debug.WriteLine($"Received message type: {dataPackage.Type.ToString()}");
                         switch (dataPackage.Type)
                         {
                             case MessageType.SYSTEM_LOGIN_OK:
@@ -179,9 +163,9 @@ namespace PicoChat
                         }
                     }
                 }
-                catch (OperationCanceledException ex)
+                catch(EndOfStreamException ex)
                 {
-                    logging_.Debug(ex);
+                    Debug.WriteLine($"Client {Name} Receiver: {ex.Message}");
                 }
                 catch (IOException ex)
                 {
@@ -194,8 +178,9 @@ namespace PicoChat
                         logging_.Debug(ex);
                     }
                 }
+                ReceiverTaskExited?.Invoke(this, null);
                 logging_.Debug("Receiver task exited");
-            });
+            }, TaskCreationOptions.LongRunning);
         }
 
         void Send(MessageType messageType)
@@ -211,7 +196,21 @@ namespace PicoChat
                 FireInfo("PLEASE USE /connect TO CONNECT");
                 return;
             }
-            stream_.Write(new DataPackage(type, content));
+            try
+            {
+                stream_.Write(new DataPackage(type, content));
+            } catch (IOException ex)
+            {
+                if(ex.InnerException is SocketException)
+                {
+                    FireError(ex.InnerException.Message);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            
         }
 
         void FireInfo(string message)

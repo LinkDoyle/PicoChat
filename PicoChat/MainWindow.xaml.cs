@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using PicoChat.Common;
@@ -33,6 +34,7 @@ namespace PicoChat
             messageListView.ItemsSource = messages;
             messages.CollectionChanged += (sender, e) =>
             {
+                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
                 messageListView.ScrollIntoView(e.NewItems[e.NewItems.Count - 1]);
             };
             FireInfo("Hello~");
@@ -110,6 +112,7 @@ namespace PicoChat
                             client.ServerPort = port;
                             FireInfo($"CONNECTING to {client.ServerAddress}:{client.ServerPort}...");
                             client.Connect();
+                            Task task = client.HandleAsync();
                         }
                         else
                         {
@@ -117,10 +120,15 @@ namespace PicoChat
                         }
                         break;
                     case "/disconnect":
-                        if (!client.Connected)
+                        if (client.Connected)
+                        {
                             client.Disconnect();
+                            FireInfo("Disconnecting...");
+                        }
                         else
-                            FireError($"The client isn't connected.");
+                        {
+                            FireError("The client isn't connected.");
+                        }
                         break;
                     case "/login":
                         if (argv.Length != 2)
@@ -185,6 +193,7 @@ namespace PicoChat
             client.MessageReceived += Client_MessageReceived;
             client.StateChaged += Client_StateChaged;
             client.SocketExceptionRaising += Client_SocketExceptionRaising;
+            client.ReceiverTaskExited += (_, __) => { client.Disconnect(); };
         }
 
         void JoinedRoomList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -192,20 +201,21 @@ namespace PicoChat
             if (JoinedRoomList.SelectedIndex != -1)
             {
                 client.CurrentRoomName = JoinedRoomList.SelectedItem.ToString();
-                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}]";
+                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
             }
             else
             {
                 client.CurrentRoomName = null;
-                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}]";
+                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
             }
 
         }
 
         void Client_LoginOK(object sender, LoginInfo e)
         {
-            Dispatcher.BeginInvoke(new Action(() => {
-                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}]";
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
                 FireInfo(e.Content);
             }));
         }
@@ -217,8 +227,9 @@ namespace PicoChat
 
         void Client_LogoutOK(object sender, EventArgs e)
         {
-            Dispatcher.BeginInvoke(new Action(() => {
-                Title = $"{APP_NAME} - - [{client.CurrentRoomName}]";
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Title = $"{APP_NAME} - - [{client.CurrentRoomName}] - {messages.Count}";
             }));
         }
 

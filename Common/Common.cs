@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Xml;
@@ -18,6 +19,7 @@ namespace PicoChat.Common
         SYSTEM_UNJOIN_ROOM,
         SYSTEM_JOIN_ROOM_OK,
         SYSTEM_LEAVE_ROOM_OK,
+        SYSTEM_MESSAGE_OK,
 
         CLIENT_LOGIN,
         CLIENT_LOGOUT,
@@ -25,6 +27,7 @@ namespace PicoChat.Common
         CLIENT_LEAVE_ROOM,
         CLIENT_LIST_JOINED_ROOMS,
         CLIENT_MESSAGE,
+        CLIENT_DISCONNECT,
         NO_LOGGED,
         ALREADY_JOINNED
     }
@@ -45,8 +48,16 @@ namespace PicoChat.Common
         {
             Version = 0;
             Type = messageType;
-            Length = data.Length;
-            Data = data;
+            if (data != null)
+            {
+                Length = data.Length;
+                Data = data;
+            }
+            else
+            {
+                Length = 0;
+                Data = new byte[0];
+            }
         }
 
         public static DataPackage FromStream(Stream stream)
@@ -59,9 +70,15 @@ namespace PicoChat.Common
                     Type = (MessageType)reader.ReadInt16(),
                     Length = reader.ReadInt32()
                 };
-                if (!Enum.IsDefined(typeof(MessageType), dataPackage.Type))
+                if (Enum.IsDefined(typeof(MessageType), dataPackage.Type))
+                {
+                    dataPackage.Data = reader.ReadBytes(dataPackage.Length);
+                }
+                else
+                {
+                    Debug.WriteLine($"Warning: unknown message type value {(Int16)dataPackage.Type}.");
                     dataPackage.Type = MessageType.SYSTEM_UNKNOWN;
-                dataPackage.Data = reader.ReadBytes(dataPackage.Length);
+                }
                 return dataPackage;
             }
         }
