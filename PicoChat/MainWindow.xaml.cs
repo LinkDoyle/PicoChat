@@ -15,55 +15,55 @@ namespace PicoChat
     /// </summary>
     public partial class MainWindow : Window
     {
-        const string APP_NAME = "PicoChat";
-        Client client = new Client(IPAddress.Loopback, 23333);
-        ObservableCollection<Message> messages = new ObservableCollection<Message>();
-        ObservableCollection<string> joinedRooms = new ObservableCollection<string>();
+        private const string AppName = "PicoChat";
+        private readonly Client _client = new Client(IPAddress.Loopback, 23333);
+        private readonly ObservableCollection<Message> _messages = new ObservableCollection<Message>();
+        private readonly ObservableCollection<string> _joinedRooms = new ObservableCollection<string>();
         public MainWindow()
         {
             InitializeComponent();
 
-            JoinedRoomList.ItemsSource = joinedRooms;
+            JoinedRoomList.ItemsSource = _joinedRooms;
 
-            sendButton.Click += (sender, e) => OnSendMessage();
-            messageToSendBox.KeyDown += (sender, e) =>
+            SendButton.Click += (sender, e) => OnSendMessage();
+            MessageToSendBox.KeyDown += (sender, e) =>
             {
                 if (e.Key == Key.Enter) OnSendMessage();
             };
 
-            messageListView.ItemsSource = messages;
-            messages.CollectionChanged += (sender, e) =>
+            MessageListView.ItemsSource = _messages;
+            _messages.CollectionChanged += (sender, e) =>
             {
-                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
-                messageListView.ScrollIntoView(e.NewItems[e.NewItems.Count - 1]);
+                Title = $"{AppName} - {_client.Name} - [{_client.CurrentRoomName}] - {_messages.Count}";
+                MessageListView.ScrollIntoView(e.NewItems[e.NewItems.Count - 1]);
             };
             FireInfo("Hello~");
             FireInfo("Use /? for help.");
         }
 
-        void FireInfo(string message)
+        private void FireInfo(string message)
         {
-            messages.Add(new Message("[Info]", "[System]", message));
+            _messages.Add(new Message("[Info]", "[System]", message));
         }
 
-        void FireInfo(string tag, string message)
+        private void FireInfo(string tag, string message)
         {
-            messages.Add(new Message(tag, "[System]", message));
+            _messages.Add(new Message(tag, "[System]", message));
         }
 
-        void FireError(string message)
+        private void FireError(string message)
         {
-            messages.Add(new Message("[Error]", "[System]", message));
+            _messages.Add(new Message("[Error]", "[System]", message));
         }
 
-        void OnSendMessage()
+        private void OnSendMessage()
         {
-            if (!messageToSendBox.Text.StartsWith("/", StringComparison.Ordinal))
+            if (!MessageToSendBox.Text.StartsWith("/", StringComparison.Ordinal))
             {
-                if (client.Connected)
+                if (_client.Connected)
                 {
-                    messages.Add(new Message("<this>", client.CurrentRoomName, messageToSendBox.Text));
-                    client.SendMessage(client.CurrentRoomName, messageToSendBox.Text);
+                    _messages.Add(new Message("<this>", _client.CurrentRoomName, MessageToSendBox.Text));
+                    _client.SendMessage(_client.CurrentRoomName, MessageToSendBox.Text);
                 }
                 else
                 {
@@ -73,7 +73,7 @@ namespace PicoChat
             }
             else
             {
-                string[] argv = messageToSendBox.Text.Split(' ');
+                string[] argv = MessageToSendBox.Text.Split(' ');
                 string command = argv[0];
                 switch (command)
                 {
@@ -91,11 +91,11 @@ namespace PicoChat
                         ");
                         break;
                     case "/connect":
-                        if (!client.Connected)
+                        if (!_client.Connected)
                         {
                             if (argv.Length != 3)
                             {
-                                FireError($"Invalid Argument {messageToSendBox.Text}");
+                                FireError($"Invalid Argument {MessageToSendBox.Text}");
                                 break;
                             }
                             if (!IPAddress.TryParse(argv[1], out IPAddress address))
@@ -103,26 +103,26 @@ namespace PicoChat
                                 FireError($"Invalid IP address {address}");
                                 break;
                             }
-                            client.ServerAddress = address;
+                            _client.ServerAddress = address;
                             if (!int.TryParse(argv[2], out int port))
                             {
                                 FireError($"Invalid port {port}");
                                 break;
                             }
-                            client.ServerPort = port;
-                            FireInfo($"CONNECTING to {client.ServerAddress}:{client.ServerPort}...");
-                            client.Connect();
-                            Task task = client.HandleAsync();
+                            _client.ServerPort = port;
+                            FireInfo($"CONNECTING to {_client.ServerAddress}:{_client.ServerPort}...");
+                            _client.Connect();
+                            Task _ = _client.HandleAsync();
                         }
                         else
                         {
-                            FireError($"The client has connected to {client.ServerAddress}:{client.ServerPort}.");
+                            FireError($"The client has connected to {_client.ServerAddress}:{_client.ServerPort}.");
                         }
                         break;
                     case "/disconnect":
-                        if (client.Connected)
+                        if (_client.Connected)
                         {
-                            client.Disconnect();
+                            _client.Disconnect();
                             FireInfo("Disconnecting...");
                         }
                         else
@@ -133,138 +133,124 @@ namespace PicoChat
                     case "/login":
                         if (argv.Length != 2)
                         {
-                            FireError($"Invalid Command {messageToSendBox.Text}");
+                            FireError($"Invalid Command {MessageToSendBox.Text}");
                             break;
                         }
-                        client.Login(argv[1]);
+                        _client.Login(argv[1]);
                         break;
                     case "/logout":
-                        client.Logout();
+                        _client.Logout();
                         break;
                     case "/join":
                         if (argv.Length != 2)
                         {
-                            FireError($"Invalid Command {messageToSendBox.Text}");
+                            FireError($"Invalid Command {MessageToSendBox.Text}");
                             break;
                         }
-                        client.Join(argv[1]);
+                        _client.Join(argv[1]);
                         break;
                     case "/leave":
                         if (argv.Length != 2)
                         {
-                            FireError($"Invalid Command {messageToSendBox.Text}");
+                            FireError($"Invalid Command {MessageToSendBox.Text}");
                             break;
                         }
-                        client.CurrentRoomName = "";
-                        client.Leave(argv[1]);
+                        _client.CurrentRoomName = "";
+                        _client.Leave(argv[1]);
                         break;
                     case "/list":
-                        client.ListJoinedRooms();
+                        _client.ListJoinedRooms();
                         break;
                     default:
-                        FireError($"Invalid Command {messageToSendBox.Text}");
+                        FireError($"Invalid Command {MessageToSendBox.Text}");
                         break;
                 }
             }
-            messageToSendBox.Text = "";
+            MessageToSendBox.Text = "";
         }
 
-        void TextBox_KeyDown(object sender, KeyEventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                OnSendMessage();
-            }
+            _client.SystemMessageReceived += Client_SystemMessageReceived;
+            _client.LoginOK += Client_LoginOK;
+            _client.LoginFailed += Client_LoginFailed;
+            _client.LogoutOK += Client_LogoutOK;
+            _client.JoinedInRoom += Client_JoinedInRoom;
+            _client.LeavedFromRoom += Client_LeavedFromRoom;
+            _client.MessageReceived += Client_MessageReceived;
+            _client.StateChaged += Client_StateChaged;
+            _client.SocketExceptionRaising += Client_SocketExceptionRaising;
+            _client.ReceiverTaskExited += (_, __) => { _client.Disconnect(); };
         }
 
-        void Button_Click(object sender, RoutedEventArgs e)
-        {
-            OnSendMessage();
-        }
-
-        void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            client.SystemMessageReceived += Client_SystemMessageReceived;
-            client.LoginOK += Client_LoginOK;
-            client.LoginFailed += Client_LoginFailed;
-            client.LogoutOK += Client_LogoutOK;
-            client.JoinedInRoom += Client_JoinedInRoom;
-            client.LeavedFromRoom += Client_LeavedFromRoom;
-            client.MessageReceived += Client_MessageReceived;
-            client.StateChaged += Client_StateChaged;
-            client.SocketExceptionRaising += Client_SocketExceptionRaising;
-            client.ReceiverTaskExited += (_, __) => { client.Disconnect(); };
-        }
-
-        void JoinedRoomList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void JoinedRoomList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (JoinedRoomList.SelectedIndex != -1)
             {
-                client.CurrentRoomName = JoinedRoomList.SelectedItem.ToString();
-                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
+                _client.CurrentRoomName = JoinedRoomList.SelectedItem.ToString();
+                Title = $"{AppName} - {_client.Name} - [{_client.CurrentRoomName}] - {_messages.Count}";
             }
             else
             {
-                client.CurrentRoomName = null;
-                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
+                _client.CurrentRoomName = null;
+                Title = $"{AppName} - {_client.Name} - [{_client.CurrentRoomName}] - {_messages.Count}";
             }
 
         }
 
-        void Client_LoginOK(object sender, LoginInfo e)
+        private void Client_LoginOK(object sender, LoginInfo e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                Title = $"{APP_NAME} - {client.Name} - [{client.CurrentRoomName}] - {messages.Count}";
+                Title = $"{AppName} - {_client.Name} - [{_client.CurrentRoomName}] - {_messages.Count}";
                 FireInfo(e.Content);
             }));
         }
 
-        void Client_LoginFailed(object sender, LoginInfo e)
+        private void Client_LoginFailed(object sender, LoginInfo e)
         {
             Dispatcher.BeginInvoke(new Action(() => FireError(e.Content)));
         }
 
-        void Client_LogoutOK(object sender, EventArgs e)
+        private void Client_LogoutOK(object sender, EventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                Title = $"{APP_NAME} - - [{client.CurrentRoomName}] - {messages.Count}";
+                Title = $"{AppName} - - [{_client.CurrentRoomName}] - {_messages.Count}";
             }));
         }
 
-        void Client_JoinedInRoom(object sender, RoomInfo e)
+        private void Client_JoinedInRoom(object sender, RoomInfo e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                joinedRooms.Add(e.Name);
-                JoinedRoomList.SelectedIndex = joinedRooms.Count - 1;
+                _joinedRooms.Add(e.Name);
+                JoinedRoomList.SelectedIndex = _joinedRooms.Count - 1;
             }));
         }
 
-        void Client_LeavedFromRoom(object sender, RoomInfo e)
+        private void Client_LeavedFromRoom(object sender, RoomInfo e)
         {
-            Dispatcher.BeginInvoke(new Action(() => joinedRooms.Remove(e.Name)));
+            Dispatcher.BeginInvoke(new Action(() => _joinedRooms.Remove(e.Name)));
         }
 
-        void Client_SystemMessageReceived(object sender, Client.SystemMessageEventArgs e)
+        private void Client_SystemMessageReceived(object sender, Client.SystemMessageEventArgs e)
         {
-            Client @this = sender as Client;
             string content = e.Data != null ? Encoding.UTF8.GetString(e.Data) : "";
             Dispatcher.BeginInvoke(new Action(() => FireInfo($"[{e.Type}]", content)));
         }
 
-        void Client_SocketExceptionRaising(object sender, SocketException e)
+        private void Client_SocketExceptionRaising(object sender, SocketException e)
         {
             Dispatcher.BeginInvoke(new Action(() => FireInfo("[SocketException]", e.Message)));
         }
 
-        void Client_MessageReceived(object sender, Message e)
+        private void Client_MessageReceived(object sender, Message e)
         {
-            Dispatcher.BeginInvoke(new Action(() => messages.Add(e)));
+            Dispatcher.BeginInvoke(new Action(() => _messages.Add(e)));
         }
 
-        void Client_StateChaged(object sender, Client.ConectionState e)
+        private void Client_StateChaged(object sender, Client.ConectionState e)
         {
             Dispatcher.BeginInvoke(new Action(() => FireInfo("[StateChaged]", e.ToString())));
         }

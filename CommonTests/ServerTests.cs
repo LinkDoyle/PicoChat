@@ -1,47 +1,42 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Threading.Tasks;
-using System.Threading;
+﻿using System.Diagnostics;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PicoChat.Common;
-using System.Diagnostics;
 
 namespace PicoChat.Tests
 {
-    [TestClass()]
+    [TestClass]
     public class ServerTests
     {
-        TestContext testContextInstance;
-        Server server;
-        readonly IPAddress address = IPAddress.Loopback;
-        const int port = 23333;
+        private Server _server;
+        private readonly IPAddress _address = IPAddress.Loopback;
+        private const int Port = 23333;
 
-        public TestContext TestContext
-        {
-            get { return testContextInstance; }
-            set { testContextInstance = value; }
-        }
+        public TestContext TestContext { get; set; }
 
         void StartServer()
         {
             Trace.WriteLine("Starting the server...");
-            server = new Server(address, port);
-            server.Start();
+            _server = new Server(_address, Port);
+            _server.Start();
         }
 
-        void StopServer()
+        private void StopServer()
         {
             Trace.WriteLine("Stopping the server...");
-            server.Stop();
+            _server.Stop();
         }
 
-        void StartAndWaitClients(int count, int messageCount)
+        private void StartAndWaitClients(int count, int messageCount)
         {
             Client[] clients = new Client[count];
             Task[] clientTasks = new Task[count];
             Trace.WriteLine("Creating clients...");
             for (int i = 0; i < clients.Length; ++i)
             {
-                Client client = clients[i] = new Client(address, port);
+                Client client = clients[i] = new Client(_address, Port);
                 CountdownEvent countdownEvent = new CountdownEvent(1);
                 string clientName = $"Clients[{i}]";
                 client.StateChaged += (sender, e) =>
@@ -84,7 +79,7 @@ namespace PicoChat.Tests
                     client.Connect();
                     Assert.IsTrue(client.Connected);
 
-                    var task = client.HandleAsync();
+                    var _ = client.HandleAsync();
                     countdownEvent.Wait();
                     Thread.Sleep(5000);
                     Trace.WriteLine($"{clientName} received {receivedCount} messages (excepted {messageCount}).");
@@ -106,18 +101,18 @@ namespace PicoChat.Tests
             Trace.WriteLine($"Time usage: {stopwatch.ElapsedMilliseconds} ms.");
         }
 
-        [TestMethod()]
+        [TestMethod]
         public void ServerAndClientTest()
         {
             StartServer();
-            StartAndWaitClients(50, 100);
+            StartAndWaitClients(100, 100);
             StopServer();
         }
 
-        [TestMethod()]
+        [TestMethod]
         public void ClientOnlyTest()
         {
-            StartAndWaitClients(50, 100);
+            StartAndWaitClients(100, 1000);
         }
     }
 }

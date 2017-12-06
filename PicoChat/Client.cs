@@ -22,15 +22,14 @@ namespace PicoChat
     }
     public class Client
     {
-        Logging logging_ = new Logging();
-        ConectionState state_ = ConectionState.DISCONNECTED;
-        Socket socket_;
-        NetworkStream stream_;
-        string name;
-        CancellationTokenSource cts_ = new CancellationTokenSource();
+        private Socket _socket;
+        private NetworkStream _stream;
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+        private ConectionState _state = ConectionState.DISCONNECTED;
+        private readonly Logging _logging = new Logging();
 
-        public string Name => name;
-        public bool Connected { get => state_ == ConectionState.CONNECTED; }
+        public string Name { get; private set; }
+        public bool Connected => _state == ConectionState.CONNECTED;
         public IPAddress ServerAddress { get; set; }
         public int ServerPort { get; set; }
         public string CurrentRoomName { get; set; }
@@ -71,43 +70,43 @@ namespace PicoChat
 
         public void Connect()
         {
-            Debug.Assert(state_ == ConectionState.DISCONNECTED);
+            Debug.Assert(_state == ConectionState.DISCONNECTED);
             try
             {
-                socket_ = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket_.Connect(ServerAddress, ServerPort);
-                stream_ = new NetworkStream(socket_);
+                _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                _socket.Connect(ServerAddress, ServerPort);
+                _stream = new NetworkStream(_socket);
 
-                state_ = ConectionState.CONNECTED;
-                logging_.Debug("Client successfully connected");
+                _state = ConectionState.CONNECTED;
+                _logging.Debug("Client successfully connected");
                 StateChaged?.Invoke(this, ConectionState.CONNECTED);
             }
             catch (SocketException ex)
             {
                 SocketExceptionRaising?.Invoke(this, ex);
-                logging_.Debug($"{ex}");
+                _logging.Debug($"{ex}");
             }
         }
 
         public async Task HandleAsync()
         {
-            Task task = Receiver(stream_, cts_);
+            Task task = Receiver(_stream, _cts);
             task.Start();
             await task;
         }
 
         public void Disconnect()
         {
-            Debug.Assert(state_ == ConectionState.CONNECTED);
+            Debug.Assert(_state == ConectionState.CONNECTED);
             Send(MessageType.CLIENT_DISCONNECT);
-            cts_.Cancel();
+            _cts.Cancel();
         }
         
-        Task Receiver(NetworkStream stream, CancellationTokenSource cts)
+        private Task Receiver(NetworkStream stream, CancellationTokenSource cts)
         {
             return new Task(() =>
             {
-                logging_.Debug("Receiver task starting...");
+                _logging.Debug("Receiver task starting...");
                 //stream.ReadTimeout = 5000;
                 try
                 {
@@ -123,7 +122,7 @@ namespace PicoChat
                             case MessageType.SYSTEM_LOGIN_OK:
                                 {
                                     LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(dataPackage.Data));
-                                    name = info.Name;
+                                    Name = info.Name;
                                     LoginOK?.Invoke(this, info);
                                 }
                                 break;
@@ -153,7 +152,7 @@ namespace PicoChat
                                 break;
                             case MessageType.CLIENT_LOGOUT:
                                 {
-                                    name = null;
+                                    Name = null;
                                     LogoutOK?.Invoke(this, null);
                                     goto default;
                                 }
@@ -175,20 +174,15 @@ namespace PicoChat
                     }
                     else
                     {
-                        logging_.Debug(ex);
+                        _logging.Debug(ex);
                     }
                 }
                 ReceiverTaskExited?.Invoke(this, null);
-                logging_.Debug("Receiver task exited");
+                _logging.Debug("Receiver task exited");
             }, TaskCreationOptions.LongRunning);
         }
 
-        void Send(MessageType messageType)
-        {
-            Send(messageType, null);
-        }
-
-        void Send(MessageType type, byte[] content)
+        private void Send(MessageType type, byte[] content = null)
         {
             if (!Connected)
             {
@@ -198,7 +192,7 @@ namespace PicoChat
             }
             try
             {
-                stream_.Write(new DataPackage(type, content));
+                _stream.Write(new DataPackage(type, content));
             } catch (IOException ex)
             {
                 if(ex.InnerException is SocketException)
@@ -213,12 +207,12 @@ namespace PicoChat
             
         }
 
-        void FireInfo(string message)
+        private void FireInfo(string message)
         {
             MessageReceived?.Invoke(this, new Message("[Info]", "[System]", message));
         }
 
-        void FireError(string message)
+        private void FireError(string message)
         {
             MessageReceived?.Invoke(this, new Message("[Error]", "[System]", message));
         }
@@ -250,7 +244,7 @@ namespace PicoChat
 
         public void SendMessage(string roomName, string content)
         {
-            Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(name, roomName, content)));
+            Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(Name, roomName, content)));
         }
     }
 }

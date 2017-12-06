@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PicoChat"
+        xmlns:common="clr-namespace:PicoChat.Common;assembly=Common"
         mc:Ignorable="d"
         Title="PicoChat"
         WindowStartupLocation="CenterScreen"
@@ -34,9 +35,9 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <ListView Margin="5,10,10,0" Name="messageListView" ItemsSource="{Binding}" IsSynchronizedWithCurrentItem="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Grid.Column="1">
+            <ListView Margin="5,10,10,0" Name="MessageListView" ItemsSource="{Binding}" IsSynchronizedWithCurrentItem="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Grid.Column="1">
                 <ListView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate DataType="common:Message">
                         <StackPanel>
                             <WrapPanel>
                                 <TextBlock Text="{Binding Room}" Foreground="BlueViolet"/>
@@ -59,8 +60,8 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <TextBox Grid.Column ="0" x:Name="messageToSendBox" Margin="10,10,5,10" TextWrapping="Wrap" FontSize="14"/>
-            <Button Grid.Column ="1" x:Name="sendButton" Content="Send" Margin="5,10,10,10"/>
+            <TextBox Grid.Column ="0" x:Name="MessageToSendBox" Margin="10,10,5,10" TextWrapping="Wrap" FontSize="14"/>
+            <Button Grid.Column ="1" x:Name="SendButton" Content="Send" Margin="5,10,10,10"/>
         </Grid>
     </Grid>
 </Window>

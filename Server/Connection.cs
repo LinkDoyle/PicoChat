@@ -11,15 +11,12 @@ namespace PicoChat
 {
     public class Connection : IDisposable
     {
-        Socket socket;
-        readonly NetworkStream networkStream;
-        bool closed;
-        List<string> joinedRooms = new List<string>();
+        private readonly NetworkStream _networkStream;
+        private bool _closed;
 
-        public List<string> JoinedRooms => joinedRooms;
-
+        public Socket Socket { get; private set; }
         public string ClientName { get; set; }
-        public Socket Socket => socket;
+        public List<string> JoinedRooms { get; } = new List<string>();
 
         public event EventHandler<string> Login;
         public event EventHandler Logout;
@@ -31,28 +28,27 @@ namespace PicoChat
 
         public Connection(Socket socket)
         {
-            this.socket = socket;
-            networkStream = new NetworkStream(socket, false);
+            Socket = socket;
+            _networkStream = new NetworkStream(socket, false);
         }
 
         public void Dispose()
         {
-            networkStream.Dispose();
-            socket.Dispose();
+            _networkStream.Dispose();
+            Socket.Dispose();
         }
 
         public void Close()
         {
-            closed = true;
+            _closed = true;
             Closed?.Invoke(this, new EventArgs());
-            socket = null;
+            Socket = null;
         }
 
-        void SendMessage(MessageType messageType, byte[] content)
+        private void SendMessage(MessageType messageType, byte[] content)
         {
-            DataPackage dataPackage = new DataPackage(messageType, content);
-            IPEndPoint endPoint = (IPEndPoint)socket.RemoteEndPoint;
-            lock(networkStream) networkStream.Write(dataPackage);
+            var dataPackage = new DataPackage(messageType, content);
+            lock (_networkStream) _networkStream.Write(dataPackage);
         }
 
         public void SendMessage(MessageType messageType)
@@ -71,48 +67,48 @@ namespace PicoChat
             SendMessage(messageType, Encoding.UTF8.GetBytes(content));
         }
 
-        void OnLogin(byte[] data)
+        private void OnLogin(byte[] data)
         {
             string name = Encoding.UTF8.GetString(data);
             Login?.Invoke(this, name);
         }
 
-        void OnLogout()
+        private void OnLogout()
         {
             Logout?.Invoke(this, null);
         }
 
-        void OnMessageReceived(byte[] data)
+        private void OnMessageReceived(byte[] data)
         {
             Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(data));
             MessageReceived?.Invoke(this, message);
         }
 
-        void OnJoinRoom(byte[] data)
+        private void OnJoinRoom(byte[] data)
         {
             string roomName = Encoding.UTF8.GetString(data);
             JoinRoom?.Invoke(this, roomName);
         }
 
-        void OnLeaveRoom(byte[] data)
+        private void OnLeaveRoom(byte[] data)
         {
             string roomName = Encoding.UTF8.GetString(data);
             LeaveRoom?.Invoke(this, roomName);
         }
 
-        void OnListJoinedRooms()
+        private void OnListJoinedRooms()
         {
             ListRooms?.Invoke(this, null);
         }
 
         public void Handle()
         {
-            IPEndPoint endPoint = (IPEndPoint)socket.RemoteEndPoint;
+            var endPoint = (IPEndPoint)Socket.RemoteEndPoint;
             try
             {
                 do
                 {
-                    DataPackage package = DataPackage.FromStream(networkStream);
+                    DataPackage package = DataPackage.FromStream(_networkStream);
                     Debug.WriteLine($"Client [{endPoint.Address}:{endPoint.Port}] message type: {package.Type.ToString()}");
                     switch (package.Type)
                     {
@@ -135,10 +131,10 @@ namespace PicoChat
                             OnLeaveRoom(package.Data);
                             break;
                         case MessageType.CLIENT_DISCONNECT:
-                            closed = true;
+                            _closed = true;
                             break;
                     }
-                } while (!closed);
+                } while (!_closed);
             }
             catch (SocketException ex)
             {
@@ -150,7 +146,8 @@ namespace PicoChat
             }
             catch (IOException ex)
             {
-                if (ex.InnerException is SocketException) {
+                if (ex.InnerException is SocketException)
+                {
                     Debug.WriteLine($"Client {endPoint.Address}:{endPoint.Port} : {ex.Message}");
                 }
                 else

@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PicoChat
 {
-    class Program
+    internal class Program
     {
         static void Main(string[] args)
         {
@@ -28,7 +24,7 @@ namespace PicoChat
                 return;
             }
 
-            Server server = new Server(address, port);
+            var server = new Server(address, port);
             server.Start();
             Console.WriteLine("Press return to exit");
             Console.ReadLine();
@@ -40,7 +36,5 @@ namespace PicoChat
             Console.WriteLine($"Usage: {AppDomain.CurrentDomain.FriendlyName} address port");
             Console.ReadLine();
         }
-
-
     }
 }

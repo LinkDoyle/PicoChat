@@ -13,47 +13,40 @@ namespace PicoChat
 {
     public class Room
     {
-        string name;
-        public string Name => name;
+        private readonly LinkedList<Connection> _connections = new LinkedList<Connection>();
+        public string Name { get; }
 
         public Room(string name)
         {
-            this.name = name;
+            Name = name;
         }
 
-        readonly LinkedList<Connection> connections = new LinkedList<Connection>();
         public bool Add(Connection connection)
         {
-            lock (connections)
+            lock (_connections)
             {
-                if (!connections.Contains(connection))
-                {
-                    connections.AddFirst(connection);
-                    return true;
-                }
+                if (_connections.Contains(connection)) return false;
+                _connections.AddFirst(connection);
+                return true;
             }
-            return false;
         }
 
         public bool Remove(Connection connection)
         {
-            lock (connections)
+            lock (_connections)
             {
-                if (connections.Contains(connection))
-                {
-                    connections.Remove(connection);
-                    return true;
-                }
+                if (!_connections.Contains(connection)) return false;
+                _connections.Remove(connection);
+                return true;
             }
-            return false;
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void SendMessage(Message message)
         {
-            lock (connections)
+            lock (_connections)
             {
-                foreach (var connection in connections)
+                foreach (var connection in _connections)
                 {
                     if (!connection.ClientName.Equals(message.Name))
                     {
@@ -66,15 +59,13 @@ namespace PicoChat
 
     public sealed class Server
     {
-        readonly Dictionary<string, Room> rooms = new Dictionary<string, Room>();
-        readonly Dictionary<string, Connection> connections = new Dictionary<string, Connection>();
-        CancellationTokenSource cts = new CancellationTokenSource();
-        long clientCount_;
+        private long _clientCount;
+        private readonly Dictionary<string, Connection> _connections = new Dictionary<string, Connection>();
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         public IPAddress Address { get; }
         public int Port { get; }
-        long ConnectionCount => clientCount_;
-        public Dictionary<string, Room> Rooms => rooms;
+        public Dictionary<string, Room> Rooms { get; } = new Dictionary<string, Room>();
 
         public Server(IPAddress address, int port)
         {
@@ -97,9 +88,9 @@ namespace PicoChat
                     Console.WriteLine("Listener task started");
                     while (true)
                     {
-                        if (cts.Token.IsCancellationRequested)
+                        if (_cts.Token.IsCancellationRequested)
                         {
-                            cts.Token.ThrowIfCancellationRequested();
+                            _cts.Token.ThrowIfCancellationRequested();
                             break;
                         }
                         Console.WriteLine("Waiting for accept...");
@@ -111,19 +102,19 @@ namespace PicoChat
                         }
                         IPEndPoint remoteEndPoint = (IPEndPoint)client.RemoteEndPoint;
                         Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} connected; " +
-                            $"Current connection: {Interlocked.Increment(ref clientCount_)}");
+                            $"Current connection: {Interlocked.Increment(ref _clientCount)}");
 
                         Task task = CommunicateWithClientUsingSocketAsync(client);
                         task.GetAwaiter().OnCompleted(() =>
                         {
                             Console.WriteLine($"Client {remoteEndPoint.Address}:{remoteEndPoint.Port} disconnected; " +
-                                $"Current connection: {Interlocked.Decrement(ref clientCount_)}");
+                                $"Current connection: {Interlocked.Decrement(ref _clientCount)}");
                         });
                     }
 
                     socket.Dispose();
                     Console.WriteLine("The sever is closed.");
-                }, cts.Token);
+                }, _cts.Token);
             }
             catch (SocketException ex)
             {
@@ -135,10 +126,10 @@ namespace PicoChat
 
         public void Stop()
         {
-            cts.Cancel();
+            _cts.Cancel();
         }
 
-        Task CommunicateWithClientUsingSocketAsync(Socket socket)
+        private Task CommunicateWithClientUsingSocketAsync(Socket socket)
         {
             Connection connection = new Connection(socket);
             IPEndPoint remoteEndPoint = (IPEndPoint)socket.RemoteEndPoint;
@@ -152,11 +143,11 @@ namespace PicoChat
                 }
                 else
                 {
-                    lock (connections)
+                    lock (_connections)
                     {
-                        if (!connections.ContainsKey(name))
+                        if (!_connections.ContainsKey(name))
                         {
-                            connections.Add(name, @this);
+                            _connections.Add(name, @this);
                             @this.ClientName = name;
                             @this.SendMessage(
                                 MessageType.SYSTEM_LOGIN_OK,
@@ -181,9 +172,9 @@ namespace PicoChat
                     @this.SendMessage(MessageType.NO_LOGGED);
                     return;
                 }
-                lock (connections)
+                lock (_connections)
                 {
-                    if (connections.ContainsKey(@this.ClientName))
+                    if (_connections.ContainsKey(@this.ClientName))
                     {
                         lock (@this.JoinedRooms)
                         {
@@ -199,7 +190,7 @@ namespace PicoChat
                         @this.SendMessage(MessageType.SYSTEM_OK, $"Logged out");
                         Console.WriteLine($"\"{@this.ClientName}\" [{remoteEndPoint.Address}:{remoteEndPoint.Port}] logged out.");
 
-                        connections.Remove(@this.ClientName);
+                        _connections.Remove(@this.ClientName);
                         @this.ClientName = null;
                     }
                     else
@@ -298,7 +289,6 @@ namespace PicoChat
                 else if (@this.ClientName == null || !@this.ClientName.Equals(message.Name))
                 {
                     @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
-                    return;
                 }
                 else if (string.IsNullOrEmpty(message.Room))
                 {
@@ -335,9 +325,9 @@ namespace PicoChat
                 }
                 if (@this.ClientName != null)
                 {
-                    lock (connections)
+                    lock (_connections)
                     {
-                        connections.Remove(@this.ClientName);
+                        _connections.Remove(@this.ClientName);
                     }
                 }
                 IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
