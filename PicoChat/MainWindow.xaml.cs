@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Input;
 using PicoChat.Common;
 
@@ -37,6 +39,18 @@ namespace PicoChat
                 Title = $"{AppName} - {_client.Name} - [{_client.CurrentRoomName}] - {_messages.Count}";
                 MessageListView.ScrollIntoView(e.NewItems[e.NewItems.Count - 1]);
             };
+
+            var messageCollectionView = CollectionViewSource.GetDefaultView(MessageListView.ItemsSource) as CollectionView;
+            Debug.Assert(messageCollectionView != null, nameof(messageCollectionView) + " != null");
+            messageCollectionView.Filter = (item) =>
+            {
+                var message = (Message) item;
+                string roomName = message.Room;
+                if (roomName == null || roomName.Equals("[System]")) return true;
+                var selectedItem = JoinedRoomList.SelectedItem;
+                return roomName.Equals(selectedItem);
+            };
+
             FireInfo("Hello~");
             FireInfo("Use /? for help.");
         }
@@ -195,7 +209,7 @@ namespace PicoChat
                 _client.CurrentRoomName = null;
                 Title = $"{AppName} - {_client.Name} - [{_client.CurrentRoomName}] - {_messages.Count}";
             }
-
+            CollectionViewSource.GetDefaultView(MessageListView.ItemsSource).Refresh();
         }
 
         private void Client_LoginOK(object sender, LoginInfo e)
