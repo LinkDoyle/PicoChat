@@ -176,12 +176,16 @@ namespace PicoChat.Common
         public string Room { get; set; }
         [XmlAttribute]
         public string Name { get; set; }
+        [XmlAttribute]
+        public string ID { get; set; }
         [XmlElement]
         public string Content { get; set; }
 
         public Message() : this("", "", "") { }
-        public Message(string name, string room, string content)
+        public Message(string name, string room, string content) : this(null, name, room, content) { }
+        public Message(string id, string name, string room, string content)
         {
+            ID = id;
             UtcTime = DateTime.Now;
             Name = name;
             Room = room;
@@ -220,6 +224,18 @@ namespace PicoChat.Common
         public static bool operator !=(Message message1, Message message2)
         {
             return !(message1 == message2);
+        }
+    }
+
+    public class Receipt : IMessage
+    {
+        [XmlAttribute]
+        public string ID { get; set; }
+
+        public Receipt() { }
+        public Receipt(string id)
+        {
+            ID = id;
         }
     }
 

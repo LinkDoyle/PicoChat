@@ -301,7 +301,7 @@ namespace PicoChat
                 else if (Rooms.TryGetValue(message.Room, out Room room))
                 {
                     room.SendMessage(message);
-                    @this.SendMessage(MessageType.SYSTEM_MESSAGE_OK);
+                    @this.SendMessage(MessageType.SYSTEM_MESSAGE_OK, new Receipt(message.ID));
                 }
                 else
                 {

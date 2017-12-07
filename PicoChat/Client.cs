@@ -27,6 +27,7 @@ namespace PicoChat
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private ConectionState _state = ConectionState.DISCONNECTED;
         private readonly Logging _logging = new Logging();
+        private readonly Random _random = new Random();
 
         public string Name { get; private set; }
         public bool Connected => _state == ConectionState.CONNECTED;
@@ -40,6 +41,7 @@ namespace PicoChat
         public event EventHandler<RoomInfo> LeavedFromRoom;
         public event EventHandler<RoomInfo> JoinedInRoom;
         public event EventHandler<Message> MessageReceived;
+        public event EventHandler<Receipt> MessageArrivied;
         public event EventHandler<ConectionState> StateChaged;
         public event EventHandler ReceiverTaskExited;
         public event EventHandler<SocketException> SocketExceptionRaising;
@@ -101,7 +103,7 @@ namespace PicoChat
             Send(MessageType.CLIENT_DISCONNECT);
             _cts.Cancel();
         }
-        
+
         private Task Receiver(NetworkStream stream, CancellationTokenSource cts)
         {
             return new Task(() =>
@@ -150,6 +152,12 @@ namespace PicoChat
                                     MessageReceived?.Invoke(this, message);
                                 }
                                 break;
+                            case MessageType.SYSTEM_MESSAGE_OK:
+                                {
+                                    Receipt receipt = Serializer.Deserialize<Receipt>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    MessageArrivied?.Invoke(this, receipt);
+                                }
+                                break;
                             case MessageType.CLIENT_LOGOUT:
                                 {
                                     Name = null;
@@ -162,7 +170,7 @@ namespace PicoChat
                         }
                     }
                 }
-                catch(EndOfStreamException ex)
+                catch (EndOfStreamException ex)
                 {
                     Debug.WriteLine($"Client {Name} Receiver: {ex.Message}");
                 }
@@ -193,9 +201,10 @@ namespace PicoChat
             try
             {
                 _stream.Write(new DataPackage(type, content));
-            } catch (IOException ex)
+            }
+            catch (IOException ex)
             {
-                if(ex.InnerException is SocketException)
+                if (ex.InnerException is SocketException)
                 {
                     FireError(ex.InnerException.Message);
                 }
@@ -204,7 +213,7 @@ namespace PicoChat
                     throw;
                 }
             }
-            
+
         }
 
         private void FireInfo(string message)
@@ -242,9 +251,24 @@ namespace PicoChat
             Send(MessageType.CLIENT_LIST_JOINED_ROOMS);
         }
 
+        private static readonly string CharTable = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+        public string GenerateID()
+        {
+            var result = new char[16];
+            for (int i = 0; i < result.Length; ++i)
+                result[i] = CharTable[_random.Next(0, CharTable.Length - 1)];
+            return result.ToString();
+        }
+
         public void SendMessage(string roomName, string content)
         {
             Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(Name, roomName, content)));
+        }
+
+        public void SendMessage(string id, string roomName, string content)
+        {
+            Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(id, Name, roomName, content)));
         }
     }
 }

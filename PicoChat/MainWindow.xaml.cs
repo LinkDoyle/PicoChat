@@ -1,14 +1,16 @@
-﻿using System;
+﻿using PicoChat.Common;
+using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
-using PicoChat.Common;
 
 namespace PicoChat
 {
@@ -19,8 +21,10 @@ namespace PicoChat
     {
         private const string AppName = "PicoChat";
         private readonly Client _client = new Client(IPAddress.Loopback, 23333);
-        private readonly ObservableCollection<Message> _messages = new ObservableCollection<Message>();
+        private readonly ObservableCollection<ChatMessage> _messages = new ObservableCollection<ChatMessage>();
+        private readonly ObservableCollection<ChatMessage> _messagesWaitToConfirm = new ObservableCollection<ChatMessage>();
         private readonly ObservableCollection<string> _joinedRooms = new ObservableCollection<string>();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -44,7 +48,7 @@ namespace PicoChat
             Debug.Assert(messageCollectionView != null, nameof(messageCollectionView) + " != null");
             messageCollectionView.Filter = (item) =>
             {
-                var message = (Message) item;
+                var message = (Message)item;
                 string roomName = message.Room;
                 if (roomName == null || roomName.Equals("[System]")) return true;
                 var selectedItem = JoinedRoomList.SelectedItem;
@@ -57,17 +61,17 @@ namespace PicoChat
 
         private void FireInfo(string message)
         {
-            _messages.Add(new Message("[Info]", "[System]", message));
+            _messages.Add(new ChatMessage("[Info]", "[System]", message));
         }
 
         private void FireInfo(string tag, string message)
         {
-            _messages.Add(new Message(tag, "[System]", message));
+            _messages.Add(new ChatMessage(tag, "[System]", message));
         }
 
         private void FireError(string message)
         {
-            _messages.Add(new Message("[Error]", "[System]", message));
+            _messages.Add(new ChatMessage("[Error]", "[System]", message));
         }
 
         private void OnSendMessage()
@@ -76,8 +80,14 @@ namespace PicoChat
             {
                 if (_client.Connected)
                 {
-                    _messages.Add(new Message("<this>", _client.CurrentRoomName, MessageToSendBox.Text));
-                    _client.SendMessage(_client.CurrentRoomName, MessageToSendBox.Text);
+                    var id = _client.GenerateID();
+                    var message = new ChatMessage("<this>", _client.CurrentRoomName, MessageToSendBox.Text)
+                    {
+                        ID = id
+                    };
+                    _messages.Add(message);
+                    _messagesWaitToConfirm.Add(message);
+                    _client.SendMessage(id, _client.CurrentRoomName, MessageToSendBox.Text);
                 }
                 else
                 {
@@ -192,6 +202,7 @@ namespace PicoChat
             _client.JoinedInRoom += Client_JoinedInRoom;
             _client.LeavedFromRoom += Client_LeavedFromRoom;
             _client.MessageReceived += Client_MessageReceived;
+            _client.MessageArrivied += Client_MessageArrivied;
             _client.StateChaged += Client_StateChaged;
             _client.SocketExceptionRaising += Client_SocketExceptionRaising;
             _client.ReceiverTaskExited += (_, __) => { _client.Disconnect(); };
@@ -261,12 +272,53 @@ namespace PicoChat
 
         private void Client_MessageReceived(object sender, Message e)
         {
-            Dispatcher.BeginInvoke(new Action(() => _messages.Add(e)));
+            Dispatcher.BeginInvoke(new Action(() => _messages.Add(new ChatMessage(e))));
+        }
+
+        private void Client_MessageArrivied(object o, Receipt receipt)
+        {
+            //            SynchronizationContext.Current.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                for (int i = 0; i < _messagesWaitToConfirm.Count; ++i)
+                {
+                    if (_messagesWaitToConfirm[i].ID == receipt.ID)
+                    {
+                        _messagesWaitToConfirm[i].HasReceipt = true;
+                        _messagesWaitToConfirm.RemoveAt(i);
+                    }
+                }
+                CollectionViewSource.GetDefaultView(_messages).Refresh();
+            }));
         }
 
         private void Client_StateChaged(object sender, Client.ConectionState e)
         {
             Dispatcher.BeginInvoke(new Action(() => FireInfo("[StateChaged]", e.ToString())));
+        }
+    }
+
+    public sealed class ChatMessage : Message, INotifyPropertyChanged
+    {
+        private bool _hasReceipt;
+        public bool HasReceipt
+        {
+            get => _hasReceipt;
+            set
+            {
+                _hasReceipt = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ChatMessage(Message message) : base(message.ID, message.Name, message.Room, message.Content) { }
+        public ChatMessage(string name, string room, string content) : base(name, room, content) { }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
