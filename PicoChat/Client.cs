@@ -7,7 +7,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using PicoChat.Common;
+using System.Drawing;
 
 namespace PicoChat
 {
@@ -41,6 +43,7 @@ namespace PicoChat
         public event EventHandler<RoomInfo> LeavedFromRoom;
         public event EventHandler<RoomInfo> JoinedInRoom;
         public event EventHandler<Message> MessageReceived;
+        public event EventHandler<ImageMessage> ImageMessageReceived;
         public event EventHandler<Receipt> MessageArrivied;
         public event EventHandler<ConectionState> StateChaged;
         public event EventHandler ReceiverTaskExited;
@@ -152,6 +155,12 @@ namespace PicoChat
                                     MessageReceived?.Invoke(this, message);
                                 }
                                 break;
+                            case MessageType.CLIENT_IMAGE_MESSAGE:
+                                {
+                                    var imageMessage = Serializer.Deserialize<ImageMessage>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    ImageMessageReceived?.Invoke(this, imageMessage);
+                                }
+                                break;
                             case MessageType.SYSTEM_MESSAGE_OK:
                                 {
                                     Receipt receipt = Serializer.Deserialize<Receipt>(Encoding.UTF8.GetString(dataPackage.Data));
@@ -258,7 +267,7 @@ namespace PicoChat
             var result = new char[16];
             for (int i = 0; i < result.Length; ++i)
                 result[i] = CharTable[_random.Next(0, CharTable.Length - 1)];
-            return result.ToString();
+            return new string(result);
         }
 
         public void SendMessage(string roomName, string content)
@@ -269,6 +278,11 @@ namespace PicoChat
         public void SendMessage(string id, string roomName, string content)
         {
             Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(id, Name, roomName, content)));
+        }
+
+        public void SendMessage(string id, string roomName, Bitmap image)
+        {
+            Send(MessageType.CLIENT_IMAGE_MESSAGE, Encoding.UTF8.GetBytes(Serializer.Serialize(new ImageMessage(id, roomName, Name, image))));
         }
     }
 }

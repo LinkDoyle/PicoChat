@@ -55,6 +55,21 @@ namespace PicoChat
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public void SendImageMessage(ImageMessage message)
+        {
+            lock (_connections)
+            {
+                foreach (var connection in _connections)
+                {
+                    if (!connection.ClientName.Equals(message.Name))
+                    {
+                        connection.SendMessage(MessageType.CLIENT_IMAGE_MESSAGE, message);
+                    }
+                }
+            }
+        }
     }
 
     public sealed class Server
@@ -214,7 +229,7 @@ namespace PicoChat
                     if (!Rooms.ContainsKey(roomName))
                     {
                         Rooms.Add(roomName, new Room(roomName));
-                        Console.WriteLine($"Room[roomName] created.");
+                        Console.WriteLine($"Room[{roomName}] created.");
                     }
                     Room room = Rooms[roomName];
                     if (room.Add(@this))
@@ -302,6 +317,36 @@ namespace PicoChat
                 {
                     room.SendMessage(message);
                     @this.SendMessage(MessageType.SYSTEM_MESSAGE_OK, new Receipt(message.ID));
+                }
+                else
+                {
+                    @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+                }
+            };
+            connection.ImageMessageReceived += (sender, imageMessage) =>
+            {
+                Connection @this = sender as Connection;
+                if (@this == null) return;
+                if (imageMessage == null)
+                {
+                    @this.SendMessage(MessageType.SYSTEM_ERROR);
+                }
+                else if (@this.ClientName == null || !@this.ClientName.Equals(imageMessage.Name))
+                {
+                    @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
+                }
+                else if (string.IsNullOrEmpty(imageMessage.Room))
+                {
+                    @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+                }
+                else if (!@this.JoinedRooms.Contains(imageMessage.Room))
+                {
+                    @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, $"Please joinned in the room {imageMessage.Room} first.");
+                }
+                else if (Rooms.TryGetValue(imageMessage.Room, out Room room))
+                {
+                    room.SendImageMessage(imageMessage);
+                    @this.SendMessage(MessageType.SYSTEM_MESSAGE_OK, new Receipt(imageMessage.ID));
                 }
                 else
                 {

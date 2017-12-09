@@ -43,8 +43,8 @@
                       ItemsSource="{Binding}"
                       IsSynchronizedWithCurrentItem="True" 
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListView.ItemTemplate>
-                    <DataTemplate DataType="local:ChatMessage">
+                <ListView.Resources>
+                    <DataTemplate DataType="{x:Type local:ChatTextMessage}">
                         <StackPanel>
                             <WrapPanel>
                                 <TextBlock Text="{Binding Room}" Foreground="BlueViolet"/>
@@ -78,18 +78,51 @@
                                          TextWrapping="Wrap" />
                         </StackPanel>
                     </DataTemplate>
-                </ListView.ItemTemplate>
+                    <DataTemplate DataType="{x:Type local:ChatImageMessage}">
+                        <StackPanel>
+                            <WrapPanel>
+                                <TextBlock Text="{Binding Room}" Foreground="BlueViolet"/>
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding Name}" Foreground="BlueViolet"/>
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding UtcTime}" Foreground="ForestGreen" />
+                                <Ellipse Width="5" Height="5" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Center" >
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Setter Property="Fill" Value="DarkRed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasReceipt}" Value="True">
+                                                    <Setter Property="Fill" Value="Green"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Name}" Value="&lt;this&gt;">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                            </WrapPanel>
+                            <Image Source="{Binding ImageSource}" Margin="5"></Image>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.Resources>
             </ListView>
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <TextBox Grid.Column ="0" x:Name="MessageToSendBox" Margin="5,5,5,5" BorderThickness="0" TextWrapping="Wrap" FontSize="14" VerticalAlignment="Center" MaxHeight="300"  VerticalScrollBarVisibility="Auto"/>
-                <TextBlock Grid.Column ="0" Margin="10,5,5,5" IsHitTestVisible="False" Text="Write a message..." VerticalAlignment="Center" HorizontalAlignment="Left"  Foreground="DarkGray" FontSize="14">
+                <Rectangle Grid.Column ="0" Width="24" Height="24" Margin="5,5,5,5" Visibility="Hidden"></Rectangle>
+                <Button Grid.Column ="0" Click="SendImageButton_OnClick"  Width="24" Height="24" Margin="5,5,5,5" VerticalAlignment="Bottom" BorderBrush="{x:Null}">
+                    <Image Source="images/picture.png"></Image>
+                </Button>
+                <TextBox Grid.Column ="1" x:Name="MessageToSendBox" Margin="5,5,5,5" BorderThickness="0" TextWrapping="Wrap" FontSize="14" VerticalAlignment="Center" MaxHeight="300"  VerticalScrollBarVisibility="Auto"/>
+                <TextBlock Grid.Column ="1" Margin="10,5,5,5" IsHitTestVisible="False" Text="Write a message..." VerticalAlignment="Center" HorizontalAlignment="Left"  Foreground="DarkGray" FontSize="14">
                     <TextBlock.Style>
                         <Style TargetType="{x:Type TextBlock}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -101,8 +134,8 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <Rectangle Grid.Column ="1" Width="48" Height="24" Margin="5,5,5,5" Visibility="Hidden"></Rectangle>
-                <Button Grid.Column ="1" x:Name="SendButton" Content="Send" Width="48" Height="24" Margin="5,0,5,5" VerticalAlignment="Bottom"/>
+                <Rectangle Grid.Column ="2" Width="48" Height="24" Margin="5,5,5,5" Visibility="Hidden"></Rectangle>
+                <Button Grid.Column ="2" x:Name="SendButton" Content="Send" Width="48" Height="24" Margin="5,0,5,5" VerticalAlignment="Bottom"/>
             </Grid>
         </Grid>
     </Grid>

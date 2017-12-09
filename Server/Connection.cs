@@ -24,6 +24,7 @@ namespace PicoChat
         public event EventHandler<string> LeaveRoom;
         public event EventHandler ListRooms;
         public event EventHandler<Message> MessageReceived;
+        public event EventHandler<ImageMessage> ImageMessageReceived;
         public event EventHandler Closed;
 
         public Connection(Socket socket)
@@ -84,6 +85,12 @@ namespace PicoChat
             MessageReceived?.Invoke(this, message);
         }
 
+        private void OnImageMessageReceived(byte[] data)
+        {
+            var imageMessage = Serializer.Deserialize<ImageMessage>(Encoding.UTF8.GetString(data));
+            ImageMessageReceived?.Invoke(this, imageMessage);
+        }
+
         private void OnJoinRoom(byte[] data)
         {
             string roomName = Encoding.UTF8.GetString(data);
@@ -120,6 +127,9 @@ namespace PicoChat
                             break;
                         case MessageType.CLIENT_MESSAGE:
                             OnMessageReceived(package.Data);
+                            break;
+                        case MessageType.CLIENT_IMAGE_MESSAGE:
+                            OnImageMessageReceived(package.Data);
                             break;
                         case MessageType.CLIENT_JOIN_ROOM:
                             OnJoinRoom(package.Data);

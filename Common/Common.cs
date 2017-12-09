@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
 using System.Xml.Serialization;
@@ -26,6 +28,7 @@ namespace PicoChat.Common
         CLIENT_LEAVE_ROOM,
         CLIENT_LIST_JOINED_ROOMS,
         CLIENT_MESSAGE,
+        CLIENT_IMAGE_MESSAGE,
         CLIENT_DISCONNECT,
         NO_LOGGED,
         ALREADY_JOINNED
@@ -168,29 +171,42 @@ namespace PicoChat.Common
         }
     }
 
-    public class Message : IMessage
+    public abstract class MessageBase : IMessage
     {
+        [XmlAttribute]
+        public string ID { get; set; }
         [XmlAttribute]
         public DateTime UtcTime { get; set; }
         [XmlAttribute]
         public string Room { get; set; }
         [XmlAttribute]
         public string Name { get; set; }
-        [XmlAttribute]
-        public string ID { get; set; }
-        [XmlElement]
-        public string Content { get; set; }
 
-        public Message() : this("", "", "") { }
-        public Message(string name, string room, string content) : this(null, name, room, content) { }
-        public Message(string id, string name, string room, string content)
+        protected MessageBase()
+        {
+        }
+
+        protected MessageBase(string id, string name, string room)
         {
             ID = id;
             UtcTime = DateTime.Now;
             Name = name;
             Room = room;
+        }
+    }
+
+    public class Message : MessageBase
+    {
+        [XmlElement]
+        public string Content { get; set; }
+
+        public Message() : this("", "", "") { }
+        public Message(string name, string room, string content) : this(null, name, room, content) { }
+        public Message(string id, string name, string room, string content) : base(id, name, room)
+        {
             Content = content;
         }
+
         public override string ToString()
         {
             return $"uctTime: {UtcTime}, room: {Room}, name: {Name}, content: {Content}";
@@ -224,6 +240,50 @@ namespace PicoChat.Common
         public static bool operator !=(Message message1, Message message2)
         {
             return !(message1 == message2);
+        }
+    }
+
+
+    public class ImageMessage : MessageBase
+    {
+        public ImageMessage() { }
+
+        public ImageMessage(string room, string name, Bitmap bitmap) : this(null, room, name, bitmap) { }
+
+        public ImageMessage(string id, string room, string name, Bitmap bitmap) : base(id, name, room)
+        {
+            Image = bitmap;
+        }
+
+        [XmlIgnore]
+        public Bitmap Image { get; private set; }
+
+        [XmlElement("Image")]
+        public byte[] ImageBuffer
+        {
+            get
+            {
+                if (Image == null) return null;
+                using (var stream = new MemoryStream())
+                {
+                    Image.Save(stream, ImageFormat.Png);
+                    return stream.ToArray();
+                }
+            }
+            set
+            {
+                if (value == null)
+                {
+                    Image = null;
+                }
+                else
+                {
+                    using (var stream = new MemoryStream(value))
+                    {
+                        Image = System.Drawing.Image.FromStream(stream) as Bitmap;
+                    }
+                }
+            }
         }
     }
 

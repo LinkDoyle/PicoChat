@@ -3,6 +3,9 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -11,6 +14,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 
 namespace PicoChat
 {
@@ -48,7 +54,7 @@ namespace PicoChat
             Debug.Assert(messageCollectionView != null, nameof(messageCollectionView) + " != null");
             messageCollectionView.Filter = (item) =>
             {
-                var message = (Message)item;
+                var message = (ChatMessage)item;
                 string roomName = message.Room;
                 if (roomName == null || roomName.Equals("[System]")) return true;
                 var selectedItem = JoinedRoomList.SelectedItem;
@@ -61,17 +67,17 @@ namespace PicoChat
 
         private void FireInfo(string message)
         {
-            _messages.Add(new ChatMessage("[Info]", "[System]", message));
+            _messages.Add(new ChatTextMessage("[Info]", "[System]", message));
         }
 
         private void FireInfo(string tag, string message)
         {
-            _messages.Add(new ChatMessage(tag, "[System]", message));
+            _messages.Add(new ChatTextMessage(tag, "[System]", message));
         }
 
         private void FireError(string message)
         {
-            _messages.Add(new ChatMessage("[Error]", "[System]", message));
+            _messages.Add(new ChatTextMessage("[Error]", "[System]", message));
         }
 
         private void OnSendMessage()
@@ -81,10 +87,7 @@ namespace PicoChat
                 if (_client.Connected)
                 {
                     var id = _client.GenerateID();
-                    var message = new ChatMessage("<this>", _client.CurrentRoomName, MessageToSendBox.Text)
-                    {
-                        ID = id
-                    };
+                    var message = new ChatTextMessage(id, "<this>", _client.CurrentRoomName, MessageToSendBox.Text);
                     _messages.Add(message);
                     _messagesWaitToConfirm.Add(message);
                     _client.SendMessage(id, _client.CurrentRoomName, MessageToSendBox.Text);
@@ -202,6 +205,7 @@ namespace PicoChat
             _client.JoinedInRoom += Client_JoinedInRoom;
             _client.LeavedFromRoom += Client_LeavedFromRoom;
             _client.MessageReceived += Client_MessageReceived;
+            _client.ImageMessageReceived += Client_ImageMessageReceived;
             _client.MessageArrivied += Client_MessageArrivied;
             _client.StateChaged += Client_StateChaged;
             _client.SocketExceptionRaising += Client_SocketExceptionRaising;
@@ -272,7 +276,12 @@ namespace PicoChat
 
         private void Client_MessageReceived(object sender, Message e)
         {
-            Dispatcher.BeginInvoke(new Action(() => _messages.Add(new ChatMessage(e))));
+            Dispatcher.BeginInvoke(new Action(() => _messages.Add(new ChatTextMessage(e))));
+        }
+
+        private void Client_ImageMessageReceived(object sender, ImageMessage e)
+        {
+            Dispatcher.BeginInvoke(new Action(() => _messages.Add(new ChatImageMessage(e))));
         }
 
         private void Client_MessageArrivied(object o, Receipt receipt)
@@ -296,9 +305,45 @@ namespace PicoChat
         {
             Dispatcher.BeginInvoke(new Action(() => FireInfo("[StateChaged]", e.ToString())));
         }
+
+        private void SendImageButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (_client.Connected)
+            {
+                OpenFileDialog openFileDialog = new OpenFileDialog
+                {
+                    Filter = "Image Files (*.bmp; *.jpg; *.jpeg; *.png; *.gif) | *.bmp; *.jpg; *.jpeg; *.png; *.gif"
+                };
+                if (openFileDialog.ShowDialog() != true) return;
+                var fileName = openFileDialog.FileName;
+                var id = _client.GenerateID();
+                using (var bitmap = Image.FromFile(fileName) as Bitmap)
+                using (var memory = new MemoryStream())
+                {
+                    if (bitmap == null) return;
+                    bitmap.Save(memory, ImageFormat.Png);
+                    memory.Position = 0;
+                    BitmapImage bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.StreamSource = memory;
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.EndInit();
+
+                    ChatMessage message = new ChatImageMessage(id, "<this>", _client.CurrentRoomName, bitmapImage);
+                    _messages.Add(message);
+                    _messagesWaitToConfirm.Add(message);
+                    _client.SendMessage(id, _client.CurrentRoomName, bitmap);
+                }
+            }
+            else
+            {
+                FireError("FAILED TO SEND IMAGE MESSAGE, PLEASE CHECK YOUR CONNECTION");
+                FireInfo("PLEASE USE /connect TO CONNECT");
+            }
+        }
     }
 
-    public sealed class ChatMessage : Message, INotifyPropertyChanged
+    public class ChatMessage : INotifyPropertyChanged
     {
         private bool _hasReceipt;
         public bool HasReceipt
@@ -311,14 +356,70 @@ namespace PicoChat
             }
         }
 
-        public ChatMessage(Message message) : base(message.ID, message.Name, message.Room, message.Content) { }
-        public ChatMessage(string name, string room, string content) : base(name, room, content) { }
+        public string ID { get; }
+        public DateTime UtcTime { get; }
+        public string Name { get; }
+        public string Room { get; }
+
+        protected ChatMessage(string id, DateTime uctTime, string name, string room)
+        {
+            ID = id;
+            UtcTime = uctTime;
+            Name = name;
+            Room = room;
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class ChatTextMessage : ChatMessage
+    {
+
+        public string Content {get;}
+        public ChatTextMessage(string id, DateTime uctTime, string name, string room, string content) : base(id, uctTime,name, room)
+        {
+            Content = content;
+        }
+        public ChatTextMessage(string id, string name, string room, string content) : base(id, DateTime.Now, name, room)
+        {
+            Content = content;
+        }
+        public ChatTextMessage(string name, string room, string content) : base(null, DateTime.Now, name, room)
+        {
+            Content = content;
+        }
+        public ChatTextMessage(Message message) : this(message.ID, message.UtcTime, message.Name, message.Room, message.Content)
+        {
+        }
+    }
+
+    public class ChatImageMessage : ChatMessage
+    {
+        public ImageSource ImageSource { get; private set; }
+        public ChatImageMessage(string id, string name, string room, ImageSource image) : base(id, DateTime.Now, name, room)
+        {
+            ImageSource = image;
+        }
+
+        public ChatImageMessage(ImageMessage message) : base(message.ID, message.UtcTime, message.Name, message.Room)
+        {
+            using (var memory = new MemoryStream())
+            {
+                if (message.Image == null) return;
+                message.Image.Save(memory, ImageFormat.Png);
+                memory.Position = 0;
+                BitmapImage bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.StreamSource = memory;
+                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                bitmapImage.EndInit();
+                ImageSource = bitmapImage;
+            }
         }
     }
 }
