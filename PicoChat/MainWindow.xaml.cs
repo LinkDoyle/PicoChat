@@ -1,4 +1,5 @@
-﻿using PicoChat.Common;
+﻿using Microsoft.Win32;
+using PicoChat.Common;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -16,7 +17,6 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
 
 namespace PicoChat
 {
@@ -86,7 +86,7 @@ namespace PicoChat
             {
                 if (_client.Connected)
                 {
-                    var id = _client.GenerateID();
+                    var id = Utility.GenerateID();
                     var message = new ChatTextMessage(id, "<this>", _client.CurrentRoomName, MessageToSendBox.Text);
                     _messages.Add(message);
                     _messagesWaitToConfirm.Add(message);
@@ -316,7 +316,7 @@ namespace PicoChat
                 };
                 if (openFileDialog.ShowDialog() != true) return;
                 var fileName = openFileDialog.FileName;
-                var id = _client.GenerateID();
+                var id = Utility.GenerateID();
                 using (var bitmap = Image.FromFile(fileName) as Bitmap)
                 using (var memory = new MemoryStream())
                 {
@@ -380,8 +380,8 @@ namespace PicoChat
     public class ChatTextMessage : ChatMessage
     {
 
-        public string Content {get;}
-        public ChatTextMessage(string id, DateTime uctTime, string name, string room, string content) : base(id, uctTime,name, room)
+        public string Content { get; }
+        public ChatTextMessage(string id, DateTime uctTime, string name, string room, string content) : base(id, uctTime, name, room)
         {
             Content = content;
         }

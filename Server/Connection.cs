@@ -64,8 +64,8 @@ namespace PicoChat
 
         public void SendMessage(MessageType messageType, IMessage message)
         {
-            string content = Serializer.Serialize(message);
-            SendMessage(messageType, Encoding.UTF8.GetBytes(content));
+            var data = Serializer.SerializeToBytes(message);
+            SendMessage(messageType, data);
         }
 
         private void OnLogin(byte[] data)
@@ -81,13 +81,13 @@ namespace PicoChat
 
         private void OnMessageReceived(byte[] data)
         {
-            Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(data));
+            Message message = Serializer.Deserialize<Message>(data);
             MessageReceived?.Invoke(this, message);
         }
 
         private void OnImageMessageReceived(byte[] data)
         {
-            var imageMessage = Serializer.Deserialize<ImageMessage>(Encoding.UTF8.GetString(data));
+            var imageMessage = Serializer.Deserialize<ImageMessage>(data);
             ImageMessageReceived?.Invoke(this, imageMessage);
         }
 

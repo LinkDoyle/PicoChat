@@ -1,5 +1,4 @@
-﻿#define DEBUG
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -7,29 +6,17 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
 using PicoChat.Common;
 using System.Drawing;
 
 namespace PicoChat
 {
-    class Logging
-    {
-        public void Debug(object message)
-        {
-#if DEBUG
-            Trace.TraceInformation($"{message}");
-#endif
-        }
-    }
     public class Client
     {
         private Socket _socket;
         private NetworkStream _stream;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private ConectionState _state = ConectionState.DISCONNECTED;
-        private readonly Logging _logging = new Logging();
-        private readonly Random _random = new Random();
 
         public string Name { get; private set; }
         public bool Connected => _state == ConectionState.CONNECTED;
@@ -83,13 +70,13 @@ namespace PicoChat
                 _stream = new NetworkStream(_socket);
 
                 _state = ConectionState.CONNECTED;
-                _logging.Debug("Client successfully connected");
+                Trace.TraceInformation("Client successfully connected");
                 StateChaged?.Invoke(this, ConectionState.CONNECTED);
             }
             catch (SocketException ex)
             {
                 SocketExceptionRaising?.Invoke(this, ex);
-                _logging.Debug($"{ex}");
+                Trace.TraceInformation($"{ex}");
             }
         }
 
@@ -111,7 +98,7 @@ namespace PicoChat
         {
             return new Task(() =>
             {
-                _logging.Debug("Receiver task starting...");
+                Trace.TraceInformation("Receiver task starting...");
                 //stream.ReadTimeout = 5000;
                 try
                 {
@@ -126,44 +113,44 @@ namespace PicoChat
                         {
                             case MessageType.SYSTEM_LOGIN_OK:
                                 {
-                                    LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    LoginInfo info = Serializer.Deserialize<LoginInfo>(dataPackage.Data);
                                     Name = info.Name;
                                     LoginOK?.Invoke(this, info);
                                 }
                                 break;
                             case MessageType.SYSTEM_LOGIN_FAILED:
                                 {
-                                    LoginInfo info = Serializer.Deserialize<LoginInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    LoginInfo info = Serializer.Deserialize<LoginInfo>(dataPackage.Data);
                                     LoginFailed?.Invoke(this, info);
                                 }
                                 break;
                             case MessageType.SYSTEM_JOIN_ROOM_OK:
                                 {
-                                    RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(dataPackage.Data);
                                     JoinedInRoom?.Invoke(this, roomInfo);
                                 }
                                 break;
                             case MessageType.SYSTEM_LEAVE_ROOM_OK:
                                 {
-                                    RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    RoomInfo roomInfo = Serializer.Deserialize<RoomInfo>(dataPackage.Data);
                                     LeavedFromRoom?.Invoke(this, roomInfo);
                                 }
                                 break;
                             case MessageType.CLIENT_MESSAGE:
                                 {
-                                    Message message = Serializer.DeserializeMessage(Encoding.UTF8.GetString(dataPackage.Data));
+                                    Message message = Serializer.Deserialize<Message>(dataPackage.Data);
                                     MessageReceived?.Invoke(this, message);
                                 }
                                 break;
                             case MessageType.CLIENT_IMAGE_MESSAGE:
                                 {
-                                    var imageMessage = Serializer.Deserialize<ImageMessage>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    var imageMessage = Serializer.Deserialize<ImageMessage>(dataPackage.Data);
                                     ImageMessageReceived?.Invoke(this, imageMessage);
                                 }
                                 break;
                             case MessageType.SYSTEM_MESSAGE_OK:
                                 {
-                                    Receipt receipt = Serializer.Deserialize<Receipt>(Encoding.UTF8.GetString(dataPackage.Data));
+                                    Receipt receipt = Serializer.Deserialize<Receipt>(dataPackage.Data);
                                     MessageArrivied?.Invoke(this, receipt);
                                 }
                                 break;
@@ -191,11 +178,11 @@ namespace PicoChat
                     }
                     else
                     {
-                        _logging.Debug(ex);
+                        Trace.TraceInformation($"{ex}");
                     }
                 }
                 ReceiverTaskExited?.Invoke(this, null);
-                _logging.Debug("Receiver task exited");
+                Trace.TraceInformation("Receiver task exited");
             }, TaskCreationOptions.LongRunning);
         }
 
@@ -260,16 +247,6 @@ namespace PicoChat
             Send(MessageType.CLIENT_LIST_JOINED_ROOMS);
         }
 
-        private static readonly string CharTable = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-        public string GenerateID()
-        {
-            var result = new char[16];
-            for (int i = 0; i < result.Length; ++i)
-                result[i] = CharTable[_random.Next(0, CharTable.Length - 1)];
-            return new string(result);
-        }
-
         public void SendMessage(string roomName, string content)
         {
             Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(Name, roomName, content)));
@@ -282,7 +259,7 @@ namespace PicoChat
 
         public void SendMessage(string id, string roomName, Bitmap image)
         {
-            Send(MessageType.CLIENT_IMAGE_MESSAGE, Encoding.UTF8.GetBytes(Serializer.Serialize(new ImageMessage(id, roomName, Name, image))));
+            Send(MessageType.CLIENT_IMAGE_MESSAGE, Serializer.SerializeToBytes(new ImageMessage(id, roomName, Name, image)));
         }
     }
 }

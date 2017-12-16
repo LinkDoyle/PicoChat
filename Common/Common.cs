@@ -34,10 +34,6 @@ namespace PicoChat.Common
         ALREADY_JOINNED
     }
 
-    public static class Constants
-    {
-        public const int MESSAGE_TYPE_LENGTH = 4;
-    }
 
     public struct DataPackage
     {
@@ -296,49 +292,6 @@ namespace PicoChat.Common
         public Receipt(string id)
         {
             ID = id;
-        }
-    }
-
-    public static class Serializer
-    {
-
-        public static byte[] SerializeToBytes(Message message)
-        {
-            return Encoding.UTF8.GetBytes(Serialize(message));
-        }
-
-        public static string Serialize(IMessage @object)
-        {
-
-            XmlSerializer xmlSerializer = new XmlSerializer(@object.GetType());
-            using (StringWriter textWriter = new StringWriter())
-            {
-                xmlSerializer.Serialize(textWriter, @object);
-                return textWriter.ToString();
-            }
-        }
-
-        public static T Deserialize<T>(string message) where T : IMessage
-        {
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
-            using (StringReader textReader = new StringReader(message))
-            {
-                T result = default(T);
-                try
-                {
-                    result = (T)xmlSerializer.Deserialize(textReader);
-                }
-                catch (InvalidOperationException)
-                {
-
-                }
-                return result;
-            }
-        }
-
-        public static Message DeserializeMessage(string message)
-        {
-            return Deserialize<Message>(message);
         }
     }
 }

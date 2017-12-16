@@ -11,7 +11,7 @@ namespace PicoChat.Common.Tests
         {
             Message message = new Message("Pico", "Room", "Hello");
             string serializedMessage = Serializer.Serialize(message);
-            Message deserializedMessage = Serializer.DeserializeMessage(serializedMessage);
+            Message deserializedMessage = Serializer.Deserialize<Message>(serializedMessage);
             Assert.AreEqual(message, deserializedMessage);
 
             Console.WriteLine(message);
