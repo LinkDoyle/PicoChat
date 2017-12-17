@@ -62,7 +62,7 @@ namespace PicoChat.Tests
                     Trace.WriteLine($"{clientName} joinned in {e.Name}.");
                     for (int j = 0; j < messageCount; ++j)
                     {
-                        client.SendMessage("Room", "Hello");
+                        client.SendMessage(Utility.GenerateID(), "Room", "Hello");
                     }
                     countdownEvent.Signal();
                 };

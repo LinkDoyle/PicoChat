@@ -4,15 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PicoChat"
-        xmlns:common="clr-namespace:PicoChat.Common;assembly=Common"
         x:Class="PicoChat.MainWindow"
         mc:Ignorable="d"
         Title="PicoChat"
         WindowStartupLocation="CenterScreen"
-        Loaded="Window_Loaded"
         Width="600" Height="400"
         MinWidth="600" MinHeight="400"
-        >
+        x:Name="MainWindowView"
+        DataContext="{Binding ElementName=MainWindowView}">
     <Grid Margin="0,0,0,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="150"/>
@@ -21,10 +20,16 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <ListBox Grid.Column="0" Margin="0,0,0,0" BorderThickness="0,1,1,0" x:Name="JoinedRoomList" SelectionChanged="JoinedRoomList_SelectionChanged">
+        <ListBox x:Name="JoinedRoomList"
+                 Grid.Column="0" 
+                 Margin="0,0,0,0" 
+                 BorderThickness="0,1,1,0" 
+                 ItemsSource="{Binding ViewModel.JoinRooms}"
+                 SelectedItem="{Binding ViewModel.SelectedRoom}"
+                 SelectionChanged="JoinedRoomList_SelectionChanged">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding ''}"/>
+                    <TextBlock Text="{Binding}"/>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
@@ -40,7 +45,7 @@
                       Margin="0,0,0,0"
                       BorderThickness="0,1,0,1"
                       x:Name="MessageListView"
-                      ItemsSource="{Binding}"
+                      ItemsSource="{Binding ViewModel.Messages}"
                       IsSynchronizedWithCurrentItem="True" 
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListView.Resources>
@@ -121,8 +126,28 @@
                 <Button Grid.Column ="0" Click="SendImageButton_OnClick"  Width="24" Height="24" Margin="5,5,5,5" VerticalAlignment="Bottom" BorderBrush="{x:Null}">
                     <Image Source="images/picture.png"></Image>
                 </Button>
-                <TextBox Grid.Column ="1" x:Name="MessageToSendBox" Margin="5,5,5,5" BorderThickness="0" TextWrapping="Wrap" FontSize="14" VerticalAlignment="Center" MaxHeight="300"  VerticalScrollBarVisibility="Auto"/>
-                <TextBlock Grid.Column ="1" Margin="10,5,5,5" IsHitTestVisible="False" Text="Write a message..." VerticalAlignment="Center" HorizontalAlignment="Left"  Foreground="DarkGray" FontSize="14">
+                <TextBox x:Name="MessageToSendBox"
+                         Grid.Column ="1"
+                         Margin="5,5,5,5"
+                         BorderThickness="0"
+                         TextWrapping="Wrap"
+                         FontSize="14"
+                         VerticalAlignment="Center"
+                         MaxHeight="300"
+                         VerticalScrollBarVisibility="Auto"
+                         Text="{Binding ViewModel.MessageToSend, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Command="{Binding ViewModel.SendMessageCommand}" Key="Enter"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+                <TextBlock Grid.Column ="1"
+                           Margin="10,5,5,5" 
+                           IsHitTestVisible="False" 
+                           Text="Write a message..."
+                           VerticalAlignment="Center" 
+                           HorizontalAlignment="Left"  
+                           Foreground="DarkGray" 
+                           FontSize="14">
                     <TextBlock.Style>
                         <Style TargetType="{x:Type TextBlock}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -135,7 +160,7 @@
                     </TextBlock.Style>
                 </TextBlock>
                 <Rectangle Grid.Column ="2" Width="48" Height="24" Margin="5,5,5,5" Visibility="Hidden"></Rectangle>
-                <Button Grid.Column ="2" x:Name="SendButton" Content="Send" Width="48" Height="24" Margin="5,0,5,5" VerticalAlignment="Bottom"/>
+                <Button Grid.Column ="2" Content="Send" Width="48" Height="24" Margin="5,0,5,5" VerticalAlignment="Bottom" Command="{Binding ViewModel.SendMessageCommand}"/>
             </Grid>
         </Grid>
     </Grid>

@@ -63,6 +63,11 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="IClient.cs" />
+    <Compile Include="Models\ChatImageMessage.cs" />
+    <Compile Include="Models\ChatTextMessage.cs" />
+    <Compile Include="Models\ChatMessage.cs" />
+    <Compile Include="ChatViewModel.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -104,5 +109,6 @@
   <ItemGroup>
     <Resource Include="images\picture.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

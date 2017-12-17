@@ -11,7 +11,7 @@ using System.Drawing;
 
 namespace PicoChat
 {
-    public class Client
+    public class Client : IClient
     {
         private Socket _socket;
         private NetworkStream _stream;
@@ -186,7 +186,7 @@ namespace PicoChat
             }, TaskCreationOptions.LongRunning);
         }
 
-        private void Send(MessageType type, byte[] content = null)
+        private void Send(MessageType type, byte[] data = null)
         {
             if (!Connected)
             {
@@ -196,7 +196,7 @@ namespace PicoChat
             }
             try
             {
-                _stream.Write(new DataPackage(type, content));
+                _stream.Write(new DataPackage(type, data));
             }
             catch (IOException ex)
             {
@@ -209,7 +209,6 @@ namespace PicoChat
                     throw;
                 }
             }
-
         }
 
         private void FireInfo(string message)
@@ -245,11 +244,6 @@ namespace PicoChat
         public void ListJoinedRooms()
         {
             Send(MessageType.CLIENT_LIST_JOINED_ROOMS);
-        }
-
-        public void SendMessage(string roomName, string content)
-        {
-            Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(Name, roomName, content)));
         }
 
         public void SendMessage(string id, string roomName, string content)
