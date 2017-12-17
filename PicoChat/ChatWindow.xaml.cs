@@ -1,20 +1,20 @@
 ﻿using Microsoft.Win32;
 using System.Diagnostics;
-using System.Net;
 using System.Windows;
 using System.Windows.Data;
 
 namespace PicoChat
 {
     /// <summary>
-    /// MainWindow.xaml 的交互逻辑
+    /// ChatWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class ChatWindow : Window
     {
-        public ChatViewModel ViewModel { get; } = new ChatViewModel(new Client(IPAddress.Loopback, 23333));
+        public ChatViewModel ViewModel { get; }
 
-        public MainWindow()
+        public ChatWindow(IClient client)
         {
+            ViewModel = new ChatViewModel(client);
             InitializeComponent();
 
             ViewModel.Messages.CollectionChanged += (sender, e) =>

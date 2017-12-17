@@ -80,6 +80,22 @@ namespace PicoChat
             }
         }
 
+        public void BeginConnect(AsyncCallback requestCallback)
+        {
+            Debug.Assert(_state == ConectionState.DISCONNECTED);
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket.BeginConnect(ServerAddress, ServerPort, requestCallback, null);
+        }
+
+        public void EndConnect(IAsyncResult ar)
+        {
+            _socket.EndConnect(ar);
+            _stream = new NetworkStream(_socket);
+            Trace.TraceInformation($"ar.IsCompleted: {ar.IsCompleted}");
+            _state = ConectionState.CONNECTED;
+            Trace.TraceInformation("Client successfully connected");
+        }
+
         public async Task HandleAsync()
         {
             Task task = Receiver(_stream, _cts);

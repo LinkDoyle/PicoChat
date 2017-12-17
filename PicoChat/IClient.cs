@@ -27,7 +27,6 @@ namespace PicoChat
         event EventHandler<SocketException> SocketExceptionRaising;
         event EventHandler<Client.SystemMessageEventArgs> SystemMessageReceived;
         void Connect();
-        Task HandleAsync();
         void Disconnect();
         void Login(string name);
         void Logout();
@@ -36,5 +35,10 @@ namespace PicoChat
         void ListJoinedRooms();
         void SendMessage(string id, string roomName, string content);
         void SendMessage(string id, string roomName, Bitmap image);
+
+        void BeginConnect(AsyncCallback requestCallback);
+        void EndConnect(IAsyncResult ar);
+
+        Task HandleAsync();
     }
 }

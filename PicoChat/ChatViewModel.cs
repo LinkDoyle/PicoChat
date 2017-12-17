@@ -51,9 +51,8 @@ namespace PicoChat
         public ICommand SendMessageCommand { get; }
         public ICommand SendImageCommand { get; }
 
-        public ICommand ConnectCommand { get; }
+
         public ICommand DisconnectCommand { get; }
-        public ICommand LoginCommand { get; }
         public ICommand LogoutCommand { get; }
         public ICommand JoinRoomCommand { get; }
         public ICommand LeaveRoomCommand { get; }
