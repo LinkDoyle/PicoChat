@@ -1,11 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Windows.Input;
 
 namespace PicoChat.Common
 {
+    public static class Extension
+    {
+        public static void Write(this Stream stream, DataPackage dataPackage)
+        {
+            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8, true))
+            {
+                writer.Write(dataPackage.Version);
+                writer.Write((Int16)dataPackage.Type);
+                writer.Write(dataPackage.Data.Length);
+                writer.Write(dataPackage.Data);
+            }
+        }
+    }
+
     public static class Utility
     {
         private static readonly string CharTable = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Text;
 using System.Xml.Serialization;
 
 namespace PicoChat.Common
@@ -35,67 +33,6 @@ namespace PicoChat.Common
     }
 
 
-    public struct DataPackage
-    {
-        public Int16 Version;
-        public MessageType Type;
-        public Int32 Length;
-        public Byte[] Data;
-
-        public DataPackage(MessageType messageType, byte[] data)
-        {
-            Version = 0;
-            Type = messageType;
-            if (data != null)
-            {
-                Length = data.Length;
-                Data = data;
-            }
-            else
-            {
-                Length = 0;
-                Data = new byte[0];
-            }
-        }
-
-        public static DataPackage FromStream(Stream stream)
-        {
-            using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8, true))
-            {
-                DataPackage dataPackage = new DataPackage
-                {
-                    Version = reader.ReadInt16(),
-                    Type = (MessageType)reader.ReadInt16(),
-                    Length = reader.ReadInt32()
-                };
-                if (Enum.IsDefined(typeof(MessageType), dataPackage.Type))
-                {
-                    dataPackage.Data = reader.ReadBytes(dataPackage.Length);
-                }
-                else
-                {
-                    Debug.WriteLine($"Warning: unknown message type value {(Int16)dataPackage.Type}.");
-                    dataPackage.Type = MessageType.SYSTEM_UNKNOWN;
-                }
-                return dataPackage;
-            }
-        }
-    }
-
-    public static class Extension
-    {
-        public static void Write(this Stream stream, DataPackage dataPackage)
-        {
-            using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8, true))
-            {
-                writer.Write(dataPackage.Version);
-                writer.Write((Int16)dataPackage.Type);
-                writer.Write(dataPackage.Data.Length);
-                writer.Write(dataPackage.Data);
-            }
-        }
-    }
-
     [XmlRoot]
     public interface IMessage
     {
@@ -103,10 +40,7 @@ namespace PicoChat.Common
 
     public class LoginInfo : IMessage
     {
-        public LoginInfo() : this(null, null)
-        {
-
-        }
+        public LoginInfo() : this(null, null) {}
 
         public LoginInfo(string name, string content)
         {
@@ -238,7 +172,6 @@ namespace PicoChat.Common
             return !(message1 == message2);
         }
     }
-
 
     public class ImageMessage : MessageBase
     {
