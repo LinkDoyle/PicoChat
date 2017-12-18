@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -70,6 +72,21 @@ namespace PicoChat
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public void SendFileMessage(FileMessage message)
+        {
+            lock (_connections)
+            {
+                foreach (var connection in _connections)
+                {
+                    if (!connection.ClientName.Equals(message.Name))
+                    {
+                        connection.SendMessage(MessageType.CLIENT_FILE_MESSAGE, message);
+                    }
+                }
+            }
+        }
     }
 
     public sealed class Server
@@ -84,6 +101,9 @@ namespace PicoChat
 
         public Server(IPAddress address, int port)
         {
+            var dir = new DirectoryInfo("attachments");
+            if (!dir.Exists) dir.Create();
+
             Address = address;
             Port = port;
         }
@@ -380,7 +400,85 @@ namespace PicoChat
                 connection.Dispose();
             };
 
+            connection.ClientPushFile += Connection_ClientPushFile;
+
+            connection.ClientPullFile += Connection_ClientPullFile;
+
             return Task.Run(() => connection.Handle());
+        }
+
+        private readonly Dictionary<string, string> _filenames = new Dictionary<string, string>();
+        private void Connection_ClientPushFile(object sender, byte[] data)
+        {
+            var @this = sender as Connection;
+            var message = Serializer.Deserialize<FileMessage>(data);
+            if (@this == null) return;
+            if (message == null)
+            {
+                @this.SendMessage(MessageType.SYSTEM_ERROR);
+            }
+            else if (@this.ClientName == null || !@this.ClientName.Equals(message.Name))
+            {
+                @this.SendMessage(MessageType.NO_LOGGED, "Please logged in first.");
+            }
+            else if (string.IsNullOrEmpty(message.Room))
+            {
+                @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+            }
+            else if (!@this.JoinedRooms.Contains(message.Room))
+            {
+                @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, $"Please joinned in the room {message.Room} first.");
+            }
+            else if (Rooms.TryGetValue(message.Room, out Room room))
+            {
+                using (var fileStream = new FileStream("attachments/" + message.FileId, FileMode.Create))
+                {
+                    fileStream.Write(message.data, 0, message.data.Length);
+                }
+                message.data = null;
+                lock (_filenames)
+                {
+                    _filenames.Add(message.FileId, message.FileName);
+                }
+                room.SendFileMessage(message);
+                @this.SendMessage(MessageType.SYSTEM_MESSAGE_OK, new Receipt(message.ID));
+
+                IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
+                Console.WriteLine($"Client [{endPoint.Address}:{endPoint.Port}]({@this.ClientName}) push file {message.FileName}({message.FileId}).");
+            }
+            else
+            {
+                @this.SendMessage(MessageType.SYSTEM_UNJOIN_ROOM, "Please joinned in a room first.");
+            }
+        }
+
+        private void Connection_ClientPullFile(object sender, byte[] data)
+        {
+            var @this = sender as Connection;
+            if (@this == null) return;
+            var fileId = Encoding.UTF8.GetString(data);
+            lock (_filenames)
+            {
+                if (_filenames.TryGetValue(fileId, out string fileName))
+                {
+                    IPEndPoint endPoint = (IPEndPoint)@this.Socket.RemoteEndPoint;
+                    Console.WriteLine($"Client [{endPoint.Address}:{endPoint.Port}]({@this.ClientName}) pull file {fileName}({fileId}).");
+
+                    FileInfo fileInfo = new FileInfo("attachments/" + fileId);
+                    if (!fileInfo.Exists)
+                    {
+                        //FIXME
+                        return;
+                    }
+
+                    byte[] fileBytes = File.ReadAllBytes(fileInfo.FullName);
+                    var fileMessage = new FileMessage(Utility.GenerateID(), null, null, fileId, fileName, fileInfo.Length)
+                    {
+                        data = fileBytes
+                    };
+                    @this.SendMessage(MessageType.SYSTEM_FILE_TRANSFER, fileMessage);
+                }
+            }
         }
     }
 }

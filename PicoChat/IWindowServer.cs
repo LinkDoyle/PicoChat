@@ -4,5 +4,6 @@
     {
         void ShowChatWindow();
         void CloseLoginWindow();
+        string GetSaveFilePath(string filename);
     }
 }

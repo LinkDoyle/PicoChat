@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Tracing;
 using System.Drawing;
 using System.Net;
 using System.Net.Sockets;
@@ -40,5 +41,16 @@ namespace PicoChat
         void EndConnect(IAsyncResult ar);
 
         Task HandleAsync();
+
+        void PushFile(FileMessage fileMessage);
+        //event EventHandler<FileMessage> PushFileProgressChanged;
+        //event EventHandler<FileMessage> PushFileProgressFinished;
+
+        void PullFile(string fileID);
+        //event EventHandler<FileMessage> PullFileProgressChanged;
+        //event EventHandler<FileMessage> PullFileProgressFinished;
+
+        event EventHandler<FileMessage> FileMessageReived;
+        event EventHandler<FileMessage> FileReived;
     }
 }

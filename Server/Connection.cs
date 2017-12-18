@@ -26,6 +26,8 @@ namespace PicoChat
         public event EventHandler<Message> MessageReceived;
         public event EventHandler<ImageMessage> ImageMessageReceived;
         public event EventHandler Closed;
+        public event EventHandler<byte[]> ClientPushFile;
+        public event EventHandler<byte[]> ClientPullFile;
 
         public Connection(Socket socket)
         {
@@ -143,6 +145,12 @@ namespace PicoChat
                         case MessageType.CLIENT_DISCONNECT:
                             _closed = true;
                             break;
+                        case MessageType.CLIENT_PUSH_FILE:
+                            OnClientPushFile(package.Data);
+                            break;
+                        case MessageType.CLIENT_PULL_FILE:
+                            OnClientPullFile(package.Data);
+                            break;
                     }
                 } while (!_closed);
             }
@@ -167,6 +175,16 @@ namespace PicoChat
             {
                 Close();
             }
+        }
+
+        private void OnClientPullFile(byte[] data)
+        {
+            ClientPullFile?.Invoke(this, data);
+        }
+
+        private void OnClientPushFile(byte[] data)
+        {
+            ClientPushFile?.Invoke(this, data);
         }
     }
 }

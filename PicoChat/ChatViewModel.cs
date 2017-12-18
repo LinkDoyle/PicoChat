@@ -1,17 +1,20 @@
 ﻿using PicoChat.Common;
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace PicoChat
 {
@@ -20,8 +23,9 @@ namespace PicoChat
         private const string AppName = "PicoChat";
         private static Dispatcher Dispatcher => Application.Current.Dispatcher;
         private readonly IClient _client;
+        private readonly IWindowServer _windowServer;
         private readonly ObservableCollection<ChatMessage> _messagesWaitToConfirm = new ObservableCollection<ChatMessage>();
-
+        private readonly ObservableCollection<ChatFileMessage> _transferingFiles = new ObservableCollection<ChatFileMessage>();
         public ObservableCollection<ChatMessage> Messages { get; } = new ObservableCollection<ChatMessage>();
         public ObservableCollection<string> JoinRooms { get; } = new ObservableCollection<string>();
 
@@ -50,7 +54,8 @@ namespace PicoChat
 
         public ICommand SendMessageCommand { get; }
         public ICommand SendImageCommand { get; }
-
+        public ICommand SendFileCommand { get; }
+        public ICommand PullFileCommand { get; }
 
         public ICommand DisconnectCommand { get; }
         public ICommand LogoutCommand { get; }
@@ -58,12 +63,15 @@ namespace PicoChat
         public ICommand LeaveRoomCommand { get; }
 
 
-        public ChatViewModel(IClient client)
+        public ChatViewModel(IWindowServer windowServer, IClient client)
         {
+            _windowServer = windowServer;
             _client = client;
 
             SendMessageCommand = new DelegateCommand(OnSendMessage);
             SendImageCommand = new DelegateCommand(OnSendImage);
+            SendFileCommand = new DelegateCommand<string>(OnSendFile);
+            PullFileCommand = new DelegateCommand<ChatFileMessage>(OnPullFile);
 
             _client.SystemMessageReceived += Client_SystemMessageReceived;
             _client.LoginOK += Client_LoginOK;
@@ -77,6 +85,9 @@ namespace PicoChat
             _client.StateChaged += Client_StateChaged;
             _client.SocketExceptionRaising += Client_SocketExceptionRaising;
             _client.ReceiverTaskExited += (_, __) => { _client.Disconnect(); };
+
+            _client.FileMessageReived += Client_OnFileMessageReived;
+            _client.FileReived += Client_FileReived;
 
             Messages.CollectionChanged += (sender, e) =>
             {
@@ -93,6 +104,50 @@ namespace PicoChat
             };
             FireInfo("Hello~");
             FireInfo("Use /? for help.");
+        }
+
+        private void OnPullFile(ChatFileMessage chatFileMessage)
+        {
+            if (Connected)
+            {
+                chatFileMessage.IsTransfering = true;
+                chatFileMessage.Process = 10;
+
+                _transferingFiles.Add(chatFileMessage);
+                _client.PullFile(chatFileMessage.FileId);
+            }
+        }
+
+        private void OnSendFile(string filename)
+        {
+            SendFile(filename);
+        }
+
+        public void SendFile(string filename)
+        {
+            var fileInfo = new FileInfo(filename);
+            if (Connected)
+            {
+                var id = Utility.GenerateID();
+                var fileId = Utility.GenerateID();
+
+                var fileMessage = new FileMessage(id, SelectedRoom, _client.Name, fileId, fileInfo.Name, fileInfo.Length);
+                var chatFileMessage = new ChatFileMessage(fileMessage)
+                {
+                    Name = "<this>",
+                    IsLocalMessage = true
+                };
+                Messages.Add(chatFileMessage);
+                _messagesWaitToConfirm.Add(chatFileMessage);
+
+                fileMessage.data = File.ReadAllBytes(fileInfo.FullName);
+                _client.PushFile(fileMessage);
+            }
+            else
+            {
+                FireError("FAILED TO SEND IMAGE MESSAGE, PLEASE CHECK YOUR CONNECTION");
+                FireInfo("PLEASE USE /connect TO CONNECT");
+            }
         }
 
         private void OnSendImage(object parameter)
@@ -339,6 +394,63 @@ namespace PicoChat
         {
             Dispatcher.BeginInvoke(new Action(() => FireInfo("[StateChaged]", e.ToString())));
         }
-    }
 
+        private void Client_OnFileMessageReived(object o, FileMessage fileMessage)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var chatFileMessage = new ChatFileMessage(fileMessage);
+                Messages.Add(chatFileMessage);
+            }));
+        }
+
+        private ChatFileMessage GetTransferingChatFileMessage(string fileId)
+        {
+            foreach (var t in _transferingFiles)
+            {
+                if (t.FileId == fileId)
+                {
+                    return t;
+                }
+            }
+            return null;
+        }
+        private void Client_FileReived(object sender, FileMessage fileMessage)
+        {
+            Debug.WriteLine($"Client received file (ID: {fileMessage.FileId}).");
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var t = GetTransferingChatFileMessage(fileMessage.FileId);
+                var saveFilePath = _windowServer.GetSaveFilePath(fileMessage.FileName);
+                if (saveFilePath == null) return;
+
+                if (t != null)
+                {
+                    // FIXME!
+                    t.Process = 50;
+                    Task.Run(async () =>
+                    {
+                        File.WriteAllBytes(saveFilePath, fileMessage.data);
+                        fileMessage.data = null;
+                        await Task.Delay(500);
+                        Dispatcher.Invoke(() =>
+                        {
+                            t.Process = 75;
+                        });
+                        await Task.Delay(500);
+                        Dispatcher.Invoke(() =>
+                        {
+                            t.Process = 100;
+                        });
+                        await Task.Delay(500);
+                        Dispatcher.Invoke(() =>
+                        {
+                            t.IsTransfering = false;
+                            _transferingFiles.Remove(t);
+                        });
+                    });
+                }
+            }));
+        }
+    }
 }

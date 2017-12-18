@@ -12,9 +12,9 @@ namespace PicoChat
     {
         public ChatViewModel ViewModel { get; }
 
-        public ChatWindow(IClient client)
+        public ChatWindow(IWindowServer windowServer, IClient client)
         {
-            ViewModel = new ChatViewModel(client);
+            ViewModel = new ChatViewModel(windowServer, client);
             InitializeComponent();
 
             ViewModel.Messages.CollectionChanged += (sender, e) =>
@@ -48,6 +48,21 @@ namespace PicoChat
             };
             if (openFileDialog.ShowDialog() != true) return;
             ViewModel.SendImage(openFileDialog.FileName);
+        }
+
+        private void SendFileButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "All Files (*.*) | *.*"
+            };
+            if (openFileDialog.ShowDialog() != true) return;
+            ViewModel.SendFile(openFileDialog.FileName);
+        }
+
+        private void DownloadButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            
         }
     }
 }

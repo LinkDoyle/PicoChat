@@ -17,10 +17,21 @@ namespace PicoChat
             }
         }
 
+        private bool _isLocalMessage;
+        public bool IsLocalMessage
+        {
+            get => _isLocalMessage;
+            set
+            {
+                _isLocalMessage = value;
+                OnPropertyChanged();
+            }
+        }
+
         public string ID { get; }
         public DateTime UtcTime { get; }
-        public string Name { get; }
-        public string Room { get; }
+        public string Name { get; set; }
+        public string Room { get; set; }
 
         protected ChatMessage(string id, DateTime uctTime, string name, string room)
         {
@@ -28,11 +39,12 @@ namespace PicoChat
             UtcTime = uctTime;
             Name = name;
             Room = room;
+            _isLocalMessage = Name == "<this>";
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

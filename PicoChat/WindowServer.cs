@@ -1,4 +1,6 @@
-﻿namespace PicoChat
+﻿using Microsoft.Win32;
+
+namespace PicoChat
 {
     public class WindowServer : IWindowServer
     {
@@ -14,7 +16,7 @@
         {
             if (_chatWindow == null)
             {
-                _chatWindow = new ChatWindow(_client);
+                _chatWindow = new ChatWindow(this, _client);
             }
             _chatWindow.Show();
         }
@@ -22,6 +24,16 @@
         public void CloseLoginWindow()
         {
             _loginWindow.Close();
+        }
+
+        public string GetSaveFilePath(string filename)
+        {
+            var dialog = new SaveFileDialog
+            {
+                FileName = filename,
+                Filter = "All Files (*.*) | *.*"
+            };
+            return dialog.ShowDialog() == null ? null : dialog.FileName;
         }
     }
 }

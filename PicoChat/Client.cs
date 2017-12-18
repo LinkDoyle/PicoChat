@@ -164,6 +164,18 @@ namespace PicoChat
                                     ImageMessageReceived?.Invoke(this, imageMessage);
                                 }
                                 break;
+                            case MessageType.CLIENT_FILE_MESSAGE:
+                                {
+                                    var fileMessage = Serializer.Deserialize<FileMessage>(dataPackage.Data);
+                                    FileMessageReived?.Invoke(this, fileMessage);
+                                }
+                                break;
+                            case MessageType.SYSTEM_FILE_TRANSFER:
+                                {
+                                    var fileMessage = Serializer.Deserialize<FileMessage>(dataPackage.Data);
+                                    FileReived?.Invoke(this, fileMessage);
+                                }
+                                break;
                             case MessageType.SYSTEM_MESSAGE_OK:
                                 {
                                     Receipt receipt = Serializer.Deserialize<Receipt>(dataPackage.Data);
@@ -271,5 +283,24 @@ namespace PicoChat
         {
             Send(MessageType.CLIENT_IMAGE_MESSAGE, Serializer.SerializeToBytes(new ImageMessage(id, roomName, Name, image)));
         }
+
+
+        public void PushFile(FileMessage fileMessage)
+        {
+            Send(MessageType.CLIENT_PUSH_FILE, Serializer.SerializeToBytes(fileMessage));
+            fileMessage.data = null;
+        }
+
+        public void PullFile(string fileId)
+        {
+            Send(MessageType.CLIENT_PULL_FILE, Encoding.UTF8.GetBytes(fileId));
+        }
+
+        //public event EventHandler<FileMessage> PullFileProgressChanged;
+        //public event EventHandler<FileMessage> PullFileProgressFinished;
+        //public event EventHandler<FileMessage> PushFileProgressChanged;
+        //public event EventHandler<FileMessage> PushFileProgressFinished;
+        public event EventHandler<FileMessage> FileMessageReived;
+        public event EventHandler<FileMessage> FileReived;
     }
 }

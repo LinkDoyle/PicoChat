@@ -29,7 +29,12 @@ namespace PicoChat.Common
         CLIENT_IMAGE_MESSAGE,
         CLIENT_DISCONNECT,
         NO_LOGGED,
-        ALREADY_JOINNED
+        ALREADY_JOINNED,
+
+        CLIENT_PUSH_FILE,
+        CLIENT_PULL_FILE,
+        CLIENT_FILE_MESSAGE,
+        SYSTEM_FILE_TRANSFER
     }
 
 
@@ -116,7 +121,7 @@ namespace PicoChat.Common
         {
         }
 
-        protected MessageBase(string id, string name, string room)
+        protected MessageBase(string id, string room, string name)
         {
             ID = id;
             UtcTime = DateTime.Now;
@@ -132,7 +137,7 @@ namespace PicoChat.Common
 
         public Message() : this("", "", "") { }
         public Message(string name, string room, string content) : this(null, name, room, content) { }
-        public Message(string id, string name, string room, string content) : base(id, name, room)
+        public Message(string id, string name, string room, string content) : base(id, room, name)
         {
             Content = content;
         }
@@ -179,7 +184,7 @@ namespace PicoChat.Common
 
         public ImageMessage(string room, string name, Bitmap bitmap) : this(null, room, name, bitmap) { }
 
-        public ImageMessage(string id, string room, string name, Bitmap bitmap) : base(id, name, room)
+        public ImageMessage(string id, string room, string name, Bitmap bitmap) : base(id, room, name)
         {
             Image = bitmap;
         }
@@ -225,6 +230,36 @@ namespace PicoChat.Common
         public Receipt(string id)
         {
             ID = id;
+        }
+    }
+
+    public class FileMessage : MessageBase
+    {
+        [XmlAttribute]
+        public string FileId { get; set; }
+        [XmlAttribute]
+        public string FileName { get; set; }
+        [XmlAttribute]
+        public long FileSize { get; set; }
+
+        [XmlAttribute]
+        public byte[] data { get; set; }
+
+        public FileMessage()
+        {
+        }
+
+        public FileMessage(string id, string room, string name, string filename, long fileSize) 
+            : this(id, room, name, Utility.GenerateID(), filename, fileSize)
+        {
+        }
+
+        public FileMessage(string id, string room, string name, string fileId, string filename, long fileSize) 
+            : base(id, room, name)
+        {
+            FileId = fileId;
+            FileName = filename;
+            FileSize = fileSize;
         }
     }
 }

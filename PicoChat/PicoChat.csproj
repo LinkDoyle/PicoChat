@@ -55,6 +55,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Models\ChatFileMessage.cs" />
     <Compile Include="WindowServer.cs" />
     <Page Include="ChatWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -119,6 +120,12 @@
   <ItemGroup>
     <Resource Include="images\picture.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="images\attachment.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="images\download.png" />
+    <Resource Include="images\file.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
