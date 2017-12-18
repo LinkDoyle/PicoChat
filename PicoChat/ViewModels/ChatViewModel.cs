@@ -1,5 +1,4 @@
-﻿using PicoChat.Common;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
@@ -14,10 +13,11 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Microsoft.Win32;
-using FontFamily = System.Windows.Media.FontFamily;
+using PicoChat.Common;
+using PicoChat.Models;
+using PicoChat.Servers;
 
-namespace PicoChat
+namespace PicoChat.ViewModels
 {
     public class ChatViewModel : BindableBase
     {

@@ -1,6 +1,6 @@
 ﻿using PicoChat.Common;
 
-namespace PicoChat
+namespace PicoChat.Servers
 {
     public interface IWindowServer
     {

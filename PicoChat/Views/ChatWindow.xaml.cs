@@ -1,9 +1,12 @@
-﻿using Microsoft.Win32;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Data;
+using Microsoft.Win32;
+using PicoChat.Models;
+using PicoChat.Servers;
+using PicoChat.ViewModels;
 
-namespace PicoChat
+namespace PicoChat.Views
 {
     /// <summary>
     /// ChatWindow.xaml 的交互逻辑

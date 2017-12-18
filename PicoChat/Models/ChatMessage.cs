@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace PicoChat
+namespace PicoChat.Models
 {
     public class ChatMessage : INotifyPropertyChanged
     {

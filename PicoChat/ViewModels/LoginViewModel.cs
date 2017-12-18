@@ -1,5 +1,4 @@
-﻿using PicoChat.Common;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -7,8 +6,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using PicoChat.Common;
+using PicoChat.Servers;
 
-namespace PicoChat
+namespace PicoChat.ViewModels
 {
     public class LoginViewModel : BindableBase
     {
@@ -16,7 +17,7 @@ namespace PicoChat
         private readonly IClient _client;
         private readonly IWindowServer _windowServer;
 
-        bool _isLogining = false;
+        bool _isLogining;
         public bool IsLogging
         {
             get => _isLogining;

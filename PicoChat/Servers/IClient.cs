@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Diagnostics.Tracing;
 using System.Drawing;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using PicoChat.Common;
 
-namespace PicoChat
+namespace PicoChat.Servers
 {
     public interface IClient
     {

@@ -1,11 +1,11 @@
-﻿using PicoChat.Common;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Windows;
 using System.Windows.Forms;
+using PicoChat.Common;
 using MessageBox = System.Windows.MessageBox;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
-namespace PicoChat
+namespace PicoChat.Servers
 {
     public class WindowServer : IWindowServer
     {
@@ -21,9 +21,9 @@ namespace PicoChat
 
         private const string AppName = "PicoChat";
         private readonly IClient _client;
-        private readonly LoginWindow _loginWindow;
-        private ChatWindow _chatWindow;
-        public WindowServer(IClient client, LoginWindow loginWindow)
+        private readonly Views.LoginWindow _loginWindow;
+        private Views.ChatWindow _chatWindow;
+        public WindowServer(IClient client, Views.LoginWindow loginWindow)
         {
             _client = client;
             _loginWindow = loginWindow;
@@ -32,7 +32,7 @@ namespace PicoChat
         {
             if (_chatWindow == null)
             {
-                _chatWindow = new ChatWindow(this, _client);
+                _chatWindow = new Views.ChatWindow(this, _client);
             }
             _chatWindow.Show();
         }
@@ -61,19 +61,16 @@ namespace PicoChat
         {
             var fd = new FontDialog();
             var result = fd.ShowDialog();
-            MessageFontInfo fontInfo = null;
-            if (result == System.Windows.Forms.DialogResult.OK)
+            fd.ShowEffects = false;
+            if (result != DialogResult.OK) return null;
+            var tdc = new TextDecorationCollection();
+            if (fd.Font.Underline) tdc.Add(TextDecorations.Underline);
+            if (fd.Font.Strikeout) tdc.Add(TextDecorations.Strikethrough);
+            var fontInfo = new MessageFontInfo(fd.Font.Name, fd.Font.Size * 96.0 / 72.0)
             {
-                var tdc = new TextDecorationCollection();
-                if (fd.Font.Underline) tdc.Add(TextDecorations.Underline);
-                if (fd.Font.Strikeout) tdc.Add(TextDecorations.Strikethrough);
-                fontInfo = new MessageFontInfo(fd.Font.Name, fd.Font.Size * 96.0 / 72.0)
-                {
-                    FontWeight = fd.Font.Bold ? FontWeights.Bold : FontWeights.Regular,
-                    FontStyle = fd.Font.Italic ? FontStyles.Italic : FontStyles.Normal,
-                    //TextDecorations = tdc
-                };
-            }
+                FontWeight = fd.Font.Bold ? FontWeights.Bold : FontWeights.Regular,
+                FontStyle = fd.Font.Italic ? FontStyles.Italic : FontStyles.Normal,
+            };
             return fontInfo;
         }
 
@@ -82,7 +79,7 @@ namespace PicoChat
             var cd = new ColorDialog();
             var result = cd.ShowDialog();
             MessageColorInfo colorInfo = null;
-            if (result == System.Windows.Forms.DialogResult.OK)
+            if (result == DialogResult.OK)
             {
                 colorInfo = new MessageColorInfo(ColorTranslator.ToHtml(cd.Color));
             }

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PicoChat.Common;
+using PicoChat.Servers;
 
 namespace PicoChat.Tests
 {

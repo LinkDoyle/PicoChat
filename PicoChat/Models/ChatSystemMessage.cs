@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PicoChat
+namespace PicoChat.Models
 {
     public class ChatSystemMessage : ChatMessage
     {

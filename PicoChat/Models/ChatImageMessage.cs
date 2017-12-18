@@ -5,11 +5,11 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using PicoChat.Common;
 
-namespace PicoChat
+namespace PicoChat.Models
 {
     public class ChatImageMessage : ChatMessage
     {
-        public ImageSource ImageSource { get; private set; }
+        public ImageSource ImageSource { get; }
         public ChatImageMessage(string id, string name, string room, ImageSource image) : base(id, DateTime.Now, name, room)
         {
             ImageSource = image;
@@ -22,7 +22,7 @@ namespace PicoChat
                 if (message.Image == null) return;
                 message.Image.Save(memory, ImageFormat.Png);
                 memory.Position = 0;
-                BitmapImage bitmapImage = new BitmapImage();
+                var bitmapImage = new BitmapImage();
                 bitmapImage.BeginInit();
                 bitmapImage.StreamSource = memory;
                 bitmapImage.CacheOption = BitmapCacheOption.OnLoad;

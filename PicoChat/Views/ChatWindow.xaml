@@ -1,0 +1,402 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PicoChat.Views"
+        xmlns:models="clr-namespace:PicoChat.Models"
+        x:Name="ChatWindowView"
+        x:Class="PicoChat.Views.ChatWindow"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterScreen"
+        Width="600"
+        Height="400"
+        MinWidth="600"
+        MinHeight="400"
+        DataContext="{Binding ElementName=ChatWindowView}"
+        Title="{Binding ViewModel.Title}">
+    <Grid Margin="0,0,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <ListBox x:Name="JoinedRoomList"
+                 Grid.Column="0"
+                 Margin="0,0,0,0"
+                 BorderThickness="0,1,1,0"
+                 ItemsSource="{Binding ViewModel.JoinRooms}"
+                 SelectedItem="{Binding ViewModel.SelectedRoom}"
+                 SelectionChanged="JoinedRoomList_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <Grid Grid.Column="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ListView Grid.Row="0"
+                      Margin="0,0,0,0"
+                      BorderThickness="0,1,0,1"
+                      x:Name="MessageListView"
+                      ItemsSource="{Binding ViewModel.Messages}"
+                      IsSynchronizedWithCurrentItem="True"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment"
+                                Value="Stretch" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.Resources>
+                    <DataTemplate DataType="{x:Type models:ChatSystemMessage}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <WrapPanel Margin="5"
+                                       Background="LightGray">
+                                <TextBox Background="Transparent"
+                                         BorderThickness="0"
+                                         Margin="0"
+                                         FontFamily="Consolas"
+                                         Foreground="BlueViolet"
+                                         Text="{Binding Tag, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         TextWrapping="Wrap"
+                                         TextAlignment="Center">
+                                </TextBox>
+                                <TextBlock Text=" " />
+                                <TextBox Background="Transparent"
+                                         BorderThickness="0"
+                                         Margin="0"
+                                         FontFamily="Consolas"
+                                         Text="{Binding Content, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         TextWrapping="Wrap"
+                                         TextAlignment="Center">
+                                </TextBox>
+                            </WrapPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type models:ChatTextMessage}">
+                        <StackPanel HorizontalAlignment="Left">
+                            <WrapPanel>
+                                <TextBlock Text="{Binding Room}"
+                                           Foreground="BlueViolet" />
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding Name}"
+                                           Foreground="BlueViolet" />
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding UtcTime}"
+                                           Foreground="ForestGreen" />
+                                <Ellipse Width="5"
+                                         Height="5"
+                                         Margin="5,0,0,0"
+                                         VerticalAlignment="Center"
+                                         HorizontalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                            <Setter Property="Fill"
+                                                    Value="DarkRed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasReceipt}"
+                                                             Value="True">
+                                                    <Setter Property="Fill"
+                                                            Value="Green" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Name}"
+                                                             Value="&lt;this&gt;">
+                                                    <Setter Property="Visibility"
+                                                            Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                            </WrapPanel>
+                            <TextBox Background="Transparent"
+                                     BorderThickness="0"
+                                     Margin="10, 0, 0, 10"
+                                     FontFamily="{Binding FontInfo.FontFamily}"
+                                     FontSize="{Binding FontInfo.FontSize}"
+                                     FontStyle="{Binding FontInfo.FontStyle}"
+                                     FontWeight="{Binding FontInfo.FontWeight}"
+                                     Foreground="{Binding ColorInfo.Foreground}"
+                                     Text="{Binding Content, Mode=OneWay}"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap">
+                            </TextBox>
+                        </StackPanel>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type models:ChatImageMessage}">
+                        <StackPanel>
+                            <WrapPanel>
+                                <TextBlock Text="{Binding Room}"
+                                           Foreground="BlueViolet" />
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding Name}"
+                                           Foreground="BlueViolet" />
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding UtcTime}"
+                                           Foreground="ForestGreen" />
+                                <Ellipse Width="5"
+                                         Height="5"
+                                         Margin="5,0,0,0"
+                                         VerticalAlignment="Center"
+                                         HorizontalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                            <Setter Property="Fill"
+                                                    Value="DarkRed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasReceipt}"
+                                                             Value="True">
+                                                    <Setter Property="Fill"
+                                                            Value="Green" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsLocalMessage}"
+                                                             Value="True">
+                                                    <Setter Property="Visibility"
+                                                            Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                            </WrapPanel>
+                            <Image Source="{Binding ImageSource}"
+                                   Margin="5"></Image>
+                        </StackPanel>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type models:ChatFileMessage}">
+                        <StackPanel Margin="0,0,0,5">
+                            <WrapPanel>
+                                <TextBlock Text="{Binding Room}"
+                                           Foreground="BlueViolet" />
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding Name}"
+                                           Foreground="BlueViolet" />
+                                <TextBlock Text=" " />
+                                <TextBlock Text="{Binding UtcTime}"
+                                           Foreground="ForestGreen" />
+                                <Ellipse Width="5"
+                                         Height="5"
+                                         Margin="5,0,0,0"
+                                         VerticalAlignment="Center"
+                                         HorizontalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                            <Setter Property="Fill"
+                                                    Value="DarkRed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasReceipt}"
+                                                             Value="True">
+                                                    <Setter Property="Fill"
+                                                            Value="Green" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsLocalMessage}"
+                                                             Value="True">
+                                                    <Setter Property="Visibility"
+                                                            Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                            </WrapPanel>
+                            <WrapPanel Margin="5,5,5,5">
+                                <Image Margin="0, 0, 0, 0"
+                                       Width="32"
+                                       Height="32"
+                                       Source="/PicoChat;component/Images/file.png"></Image>
+                                <StackPanel>
+                                    <TextBox Background="Transparent"
+                                             BorderThickness="0"
+                                             Margin="10, 0, 10, 0"
+                                             FontFamily="Consolas"
+                                             FontSize="14"
+                                             Text="{Binding FileName, Mode=OneWay}"
+                                             IsReadOnly="True"
+                                             TextWrapping="Wrap"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock  Margin="10, 0, 10, 0"
+                                                FontFamily="Consolas"
+                                                FontSize="14"
+                                                Foreground="DarkGray"
+                                                Text="{Binding FileSize}" />
+                                </StackPanel>
+                                <Button VerticalAlignment="Bottom"
+                                        Width="24"
+                                        Height="24"
+                                        BorderBrush="{x:Null}"
+                                        Background="Transparent"
+                                        Command="{Binding RelativeSource={RelativeSource AncestorType=local:ChatWindow}, Path=ViewModel.PullFileCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Image Source="/PicoChat;component/Images/download.png"></Image>
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTransfering}"
+                                                             Value="True">
+                                                    <Setter Property="Visibility"
+                                                            Value="Hidden" />
+                                                </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsLocalMessage}"
+                                                                   Value="True" />
+                                                        <Condition Binding="{Binding HasReceipt}"
+                                                                   Value="False" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility"
+                                                            Value="Hidden" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </WrapPanel>
+                            <ProgressBar Height="5"
+                                         Value="{Binding Process}">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Visibility"
+                                                Value="Hidden" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsTransfering}"
+                                                         Value="True">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.Resources>
+            </ListView>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Rectangle Grid.Column="0"
+                           Width="24"
+                           Height="24"
+                           Margin="5,5,5,5"
+                           Visibility="Hidden"></Rectangle>
+                <Button Grid.Column="0"
+                        Click="SendFileButton_OnClick"
+                        Width="24"
+                        Height="24"
+                        Margin="5,5,5,5"
+                        VerticalAlignment="Bottom"
+                        BorderBrush="{x:Null}"
+                        Background="Transparent">
+                    <Image Source="/PicoChat;component/Images/attachment.png"></Image>
+                </Button>
+                <Button Grid.Column="1"
+                        Click="SendImageButton_OnClick"
+                        Width="24"
+                        Height="24"
+                        Margin="0,5,5,5"
+                        VerticalAlignment="Bottom"
+                        BorderBrush="{x:Null}"
+                        Background="Transparent">
+                    <Image Source="/PicoChat;component/Images/picture.png"></Image>
+                </Button>
+                <Button Grid.Column="2"
+                        Command="{Binding ViewModel.SetMessageColorCommand}"
+                        Width="24"
+                        Height="24"
+                        Margin="0,5,5,5"
+                        VerticalAlignment="Bottom"
+                        BorderBrush="{x:Null}"
+                        Background="Transparent">
+                    <Image Source="/PicoChat;component/Images/textcolor.png"></Image>
+                </Button>
+                <Button Grid.Column="3"
+                        Command="{Binding ViewModel.SetMessageFontCommand}"
+                        Width="24"
+                        Height="24"
+                        Margin="0,5,5,5"
+                        VerticalAlignment="Bottom"
+                        BorderBrush="{x:Null}"
+                        Background="Transparent">
+                    <Image Source="/PicoChat;component/Images/font.png"></Image>
+                </Button>
+                <TextBox Grid.Column="4"
+                         x:Name="MessageToSendBox"
+                         Margin="5,5,5,5"
+                         BorderThickness="0"
+                         TextWrapping="Wrap"
+                         FontSize="14"
+                         VerticalAlignment="Center"
+                         MaxHeight="300"
+                         VerticalScrollBarVisibility="Auto"
+                         Text="{Binding ViewModel.MessageToSend, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Command="{Binding ViewModel.SendMessageCommand}"
+                                    Key="Enter" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <TextBlock Grid.Column="4"
+                           Margin="10,5,5,5"
+                           IsHitTestVisible="False"
+                           Text="Write a message..."
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"
+                           Foreground="DarkGray"
+                           FontSize="14">
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility"
+                                    Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=MessageToSendBox}"
+                                             Value="">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <Rectangle Grid.Column="5"
+                           Width="48"
+                           Height="24"
+                           Margin="5,5,5,5"
+                           Visibility="Hidden"></Rectangle>
+                <Button Grid.Column="5"
+                        Content="Send"
+                        Width="48"
+                        Height="24"
+                        Margin="5,0,5,5"
+                        VerticalAlignment="Bottom"
+                        Command="{Binding ViewModel.SendMessageCommand}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

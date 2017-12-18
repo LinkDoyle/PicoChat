@@ -1,7 +1,9 @@
 ﻿using System.Net;
 using System.Windows;
+using PicoChat.Servers;
+using PicoChat.ViewModels;
 
-namespace PicoChat
+namespace PicoChat.Views
 {
     /// <summary>
     /// LoginWindow.xaml 的交互逻辑

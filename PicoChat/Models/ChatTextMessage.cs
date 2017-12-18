@@ -1,7 +1,7 @@
 ﻿using System;
 using PicoChat.Common;
 
-namespace PicoChat
+namespace PicoChat.Models
 {
     public class ChatTextMessage : ChatMessage
     {
