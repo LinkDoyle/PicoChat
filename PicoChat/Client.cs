@@ -35,7 +35,8 @@ namespace PicoChat
         public event EventHandler<ConectionState> StateChaged;
         public event EventHandler ReceiverTaskExited;
         public event EventHandler<SocketException> SocketExceptionRaising;
-        public event EventHandler<SystemMessageEventArgs> SystemMessageReceived;
+        public event EventHandler<SystemMessageEventArgs> UnknownMessageReceived;
+        public event EventHandler<string> SystemMessageReceived;
 
         public enum ConectionState
         {
@@ -182,6 +183,12 @@ namespace PicoChat
                                     MessageArrivied?.Invoke(this, receipt);
                                 }
                                 break;
+                            case MessageType.SYSTEM_MESSAGE:
+                            {
+                                var message = Encoding.UTF8.GetString(dataPackage.Data);
+                                SystemMessageReceived?.Invoke(this, message);
+                                break;
+                            }
                             case MessageType.CLIENT_LOGOUT:
                                 {
                                     Name = null;
@@ -189,7 +196,7 @@ namespace PicoChat
                                     goto default;
                                 }
                             default:
-                                SystemMessageReceived?.Invoke(this, new SystemMessageEventArgs(dataPackage.Type, dataPackage.Data));
+                                UnknownMessageReceived?.Invoke(this, new SystemMessageEventArgs(dataPackage.Type, dataPackage.Data));
                                 break;
                         }
                     }

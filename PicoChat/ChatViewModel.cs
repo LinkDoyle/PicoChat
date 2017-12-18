@@ -95,7 +95,7 @@ namespace PicoChat
             SetMessageColorCommand = new DelegateCommand(OnSetMessageColorInfo);
             SetMessageFontCommand = new DelegateCommand(OnSetMessageFontInfo);
 
-            _client.SystemMessageReceived += Client_SystemMessageReceived;
+            _client.UnknownMessageReceived += Client_UnknownMessageReceived;
             _client.LoginOK += Client_LoginOK;
             _client.LoginFailed += Client_LoginFailed;
             _client.LogoutOK += Client_LogoutOK;
@@ -107,7 +107,7 @@ namespace PicoChat
             _client.StateChaged += Client_StateChaged;
             _client.SocketExceptionRaising += Client_SocketExceptionRaising;
             _client.ReceiverTaskExited += (_, __) => { _client.Disconnect(); };
-
+            _client.SystemMessageReceived += Client_OnSystemMessageReceived;
             _client.FileMessageReived += Client_OnFileMessageReived;
             _client.FileReived += Client_FileReived;
 
@@ -387,7 +387,12 @@ namespace PicoChat
             Dispatcher.BeginInvoke(new Action(() => JoinRooms.Remove(e.Name)));
         }
 
-        private void Client_SystemMessageReceived(object sender, Client.SystemMessageEventArgs e)
+        private void Client_OnSystemMessageReceived(object o, string content)
+        {
+            Dispatcher.BeginInvoke(new Action(() => FireInfo("[SYS]", content)));
+        }
+
+        private void Client_UnknownMessageReceived(object sender, Client.SystemMessageEventArgs e)
         {
             string content = e.Data != null ? Encoding.UTF8.GetString(e.Data) : "";
             Dispatcher.BeginInvoke(new Action(() => FireInfo($"[{e.Type}]", content)));

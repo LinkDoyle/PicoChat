@@ -70,7 +70,7 @@ namespace PicoChat.Tests
                 clientTasks[i] = new Task(() =>
                 {
                     int receivedCount = 0;
-                    client.SystemMessageReceived += (sender, e) =>
+                    client.UnknownMessageReceived += (sender, e) =>
                     {
                         if (e.Type == MessageType.SYSTEM_MESSAGE_OK)
                         {

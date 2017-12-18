@@ -37,7 +37,8 @@ namespace PicoChat.Common
         CLIENT_PUSH_FILE,
         CLIENT_PULL_FILE,
         CLIENT_FILE_MESSAGE,
-        SYSTEM_FILE_TRANSFER
+        SYSTEM_FILE_TRANSFER,
+        SYSTEM_MESSAGE
     }
 
 

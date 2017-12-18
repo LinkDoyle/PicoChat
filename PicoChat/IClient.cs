@@ -26,7 +26,8 @@ namespace PicoChat
         event EventHandler<Client.ConectionState> StateChaged;
         event EventHandler ReceiverTaskExited;
         event EventHandler<SocketException> SocketExceptionRaising;
-        event EventHandler<Client.SystemMessageEventArgs> SystemMessageReceived;
+        event EventHandler<Client.SystemMessageEventArgs> UnknownMessageReceived;
+        event EventHandler<string> SystemMessageReceived;
         void Connect();
         void Disconnect();
         void Login(string name);

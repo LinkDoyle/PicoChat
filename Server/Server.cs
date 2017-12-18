@@ -87,6 +87,21 @@ namespace PicoChat
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public void SendSystemMessage(string message, string source)
+        {
+            lock (_connections)
+            {
+                foreach (var connection in _connections)
+                {
+                    if (!connection.ClientName.Equals(source))
+                    {
+                        connection.SendMessage(MessageType.SYSTEM_MESSAGE, message);
+                    }
+                }
+            }
+        }
     }
 
     public sealed class Server
@@ -257,6 +272,7 @@ namespace PicoChat
                         lock (@this.JoinedRooms) @this.JoinedRooms.Add(room.Name);
                         @this.SendMessage(MessageType.SYSTEM_JOIN_ROOM_OK, new RoomInfo(room.Name));
                         Console.WriteLine($"{@this.ClientName} [{remoteEndPoint.Address}:{remoteEndPoint.Port}] joined the room[{room.Name}].");
+                        room.SendSystemMessage($"{@this.ClientName} joined the room {room.Name}.", @this.ClientName);
                     }
                     else
                     {
