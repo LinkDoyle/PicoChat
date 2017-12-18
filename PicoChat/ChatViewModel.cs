@@ -124,7 +124,7 @@ namespace PicoChat
                     Title = $"{AppName} - {_client.Name} - [{_client.CurrentRoomName}] - {Messages.Count}";
                 }
             };
-            FireInfo("Hello~");
+            FireInfo(_client.Name != null ? $"Hello {_client.Name}~" : "Hello, please login...");
             FireInfo("Use /? for help.");
         }
 
