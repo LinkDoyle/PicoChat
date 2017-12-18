@@ -54,6 +54,33 @@
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.Resources>
+                    <DataTemplate DataType="{x:Type local:ChatSystemMessage}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <WrapPanel Margin="5"
+                                       Background="LightGray">
+                                <TextBox Background="Transparent"
+                                         BorderThickness="0"
+                                         Margin="0"
+                                         FontFamily="Consolas"
+                                         Foreground="BlueViolet"
+                                         Text="{Binding Tag, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         TextWrapping="Wrap"
+                                         TextAlignment="Center">
+                                </TextBox>
+                                <TextBlock Text=" " />
+                                <TextBox Background="Transparent"
+                                         BorderThickness="0"
+                                         Margin="0"
+                                         FontFamily="Consolas"
+                                         Text="{Binding Content, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         TextWrapping="Wrap"
+                                         TextAlignment="Center">
+                                </TextBox>
+                            </WrapPanel>
+                        </StackPanel>
+                    </DataTemplate>
                     <DataTemplate DataType="{x:Type local:ChatTextMessage}">
                         <StackPanel HorizontalAlignment="Left">
                             <WrapPanel>

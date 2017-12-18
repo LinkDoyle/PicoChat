@@ -304,17 +304,17 @@ namespace PicoChat
 
         private void FireInfo(string message)
         {
-            Messages.Add(new ChatTextMessage("[Info]", "[System]", message));
+            Messages.Add(new ChatSystemMessage("[Info]", message));
         }
 
         private void FireInfo(string tag, string message)
         {
-            Messages.Add(new ChatTextMessage(tag, "[System]", message));
+            Messages.Add(new ChatSystemMessage(tag, message));
         }
 
         private void FireError(string message)
         {
-            Messages.Add(new ChatTextMessage("[Error]", "[System]", message));
+            Messages.Add(new ChatSystemMessage("[Error]", message));
         }
 
         private void Client_LoginOK(object sender, LoginInfo e)
