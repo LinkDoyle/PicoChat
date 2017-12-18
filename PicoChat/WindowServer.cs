@@ -1,9 +1,21 @@
-﻿using Microsoft.Win32;
+﻿using System.Windows;
+using Microsoft.Win32;
 
 namespace PicoChat
 {
     public class WindowServer : IWindowServer
     {
+        private const string HelpMessageText = @"
+    /connect [IP] [PORT] - connect to server
+    /disconnect - disconnect
+    /login [NAME] - login with [name]
+    /logout - logout
+    /join  [NAME] - join [room]
+    /leave [NAME] - leave [room]
+    /list - list the room you joined
+    [message] - send message to current room";
+
+        private const string AppName = "PicoChat";
         private readonly IClient _client;
         private readonly LoginWindow _loginWindow;
         private ChatWindow _chatWindow;
@@ -34,6 +46,11 @@ namespace PicoChat
                 Filter = "All Files (*.*) | *.*"
             };
             return dialog.ShowDialog() == null ? null : dialog.FileName;
+        }
+
+        public void ShowHelpDialog()
+        {
+            MessageBox.Show(HelpMessageText, AppName);
         }
     }
 }

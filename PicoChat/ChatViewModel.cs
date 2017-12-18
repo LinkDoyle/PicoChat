@@ -211,17 +211,7 @@ namespace PicoChat
                 switch (command)
                 {
                     case "/?":
-                        FireInfo("[HELP]",
-                        @"
-    /connect [IP] [PORT] connect to server
-    /disconnect          disconnect
-    /login [NAME]        login with [name]
-    /logout              logout
-    /join  [NAME]        join [room]
-    /leave [NAME]        leave [room]
-    /list                list the room you joined
-    [message]            send message to current room
-                        ");
+                        _windowServer.ShowHelpDialog();
                         break;
                     case "/connect":
                         if (!_client.Connected)
