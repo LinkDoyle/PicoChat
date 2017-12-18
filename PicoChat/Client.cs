@@ -274,9 +274,9 @@ namespace PicoChat
             Send(MessageType.CLIENT_LIST_JOINED_ROOMS);
         }
 
-        public void SendMessage(string id, string roomName, string content)
+        public void SendMessage(Message message)
         {
-            Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(new Message(id, Name, roomName, content)));
+            Send(MessageType.CLIENT_MESSAGE, Serializer.SerializeToBytes(message));
         }
 
         public void SendMessage(string id, string roomName, Bitmap image)

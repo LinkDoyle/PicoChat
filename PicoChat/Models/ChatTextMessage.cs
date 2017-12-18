@@ -7,6 +7,9 @@ namespace PicoChat
     {
 
         public string Content { get; }
+        public MessageColorInfo ColorInfo { get; set; }
+        public MessageFontInfo FontInfo { get; set; }
+
         public ChatTextMessage(string id, DateTime uctTime, string name, string room, string content) : base(id, uctTime, name, room)
         {
             Content = content;
@@ -15,12 +18,10 @@ namespace PicoChat
         {
             Content = content;
         }
-        public ChatTextMessage(string name, string room, string content) : base(null, DateTime.Now, name, room)
-        {
-            Content = content;
-        }
         public ChatTextMessage(Message message) : this(message.ID, message.UtcTime, message.Name, message.Room, message.Content)
         {
+            ColorInfo = message.ColorInfo;
+            FontInfo = message.FontInfo;
         }
     }
 }

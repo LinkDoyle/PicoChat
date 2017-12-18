@@ -15,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using FontFamily = System.Windows.Media.FontFamily;
 
 namespace PicoChat
 {
@@ -28,6 +29,21 @@ namespace PicoChat
         private readonly ObservableCollection<ChatFileMessage> _transferingFiles = new ObservableCollection<ChatFileMessage>();
         public ObservableCollection<ChatMessage> Messages { get; } = new ObservableCollection<ChatMessage>();
         public ObservableCollection<string> JoinRooms { get; } = new ObservableCollection<string>();
+
+        private MessageColorInfo _messageColorInfo = new MessageColorInfo("#FF000000");
+        public MessageColorInfo MessageColorInfo
+        {
+            get => _messageColorInfo;
+            set => SetProperty(ref _messageColorInfo, value);
+        }
+
+
+        private MessageFontInfo _messageFontInfo = new MessageFontInfo("Consolas", 14);
+        public MessageFontInfo MessageFontInfo
+        {
+            get => _messageFontInfo;
+            set => SetProperty(ref _messageFontInfo, value);
+        }
 
         private string _title;
         public string Title
@@ -57,6 +73,9 @@ namespace PicoChat
         public ICommand SendFileCommand { get; }
         public ICommand PullFileCommand { get; }
 
+        public ICommand SetMessageColorCommand { get; }
+        public ICommand SetMessageFontCommand { get; }
+
         public ICommand DisconnectCommand { get; }
         public ICommand LogoutCommand { get; }
         public ICommand JoinRoomCommand { get; }
@@ -72,6 +91,9 @@ namespace PicoChat
             SendImageCommand = new DelegateCommand(OnSendImage);
             SendFileCommand = new DelegateCommand<string>(OnSendFile);
             PullFileCommand = new DelegateCommand<ChatFileMessage>(OnPullFile);
+
+            SetMessageColorCommand = new DelegateCommand(OnSetMessageColorInfo);
+            SetMessageFontCommand = new DelegateCommand(OnSetMessageFontInfo);
 
             _client.SystemMessageReceived += Client_SystemMessageReceived;
             _client.LoginOK += Client_LoginOK;
@@ -104,6 +126,18 @@ namespace PicoChat
             };
             FireInfo("Hello~");
             FireInfo("Use /? for help.");
+        }
+
+        private void OnSetMessageFontInfo(object obj)
+        {
+            var fontInfo = _windowServer.GetFontInfo();
+            if (fontInfo != null) MessageFontInfo = fontInfo;
+        }
+
+        private void OnSetMessageColorInfo(object obj)
+        {
+            var colorInfo = _windowServer.GetColorInfo();
+            if (colorInfo != null) MessageColorInfo = colorInfo;
         }
 
         private void OnPullFile(ChatFileMessage chatFileMessage)
@@ -193,10 +227,20 @@ namespace PicoChat
                 if (_client.Connected)
                 {
                     var id = Utility.GenerateID();
-                    var message = new ChatTextMessage(id, "<this>", _client.CurrentRoomName, MessageToSend);
-                    Messages.Add(message);
-                    _messagesWaitToConfirm.Add(message);
-                    _client.SendMessage(id, _client.CurrentRoomName, MessageToSend);
+                    var chatTextMessage = new ChatTextMessage(id, "<this>", _client.CurrentRoomName, MessageToSend)
+                    {
+                        FontInfo = _messageFontInfo,
+                        ColorInfo = _messageColorInfo
+                    };
+                    Messages.Add(chatTextMessage);
+                    _messagesWaitToConfirm.Add(chatTextMessage);
+
+                    var message = new Message(id, _client.Name, _client.CurrentRoomName, MessageToSend)
+                    {
+                        ColorInfo = _messageColorInfo,
+                        FontInfo = _messageFontInfo
+                    };
+                    _client.SendMessage(message);
                 }
                 else
                 {

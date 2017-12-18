@@ -1,4 +1,6 @@
-﻿namespace PicoChat
+﻿using PicoChat.Common;
+
+namespace PicoChat
 {
     public interface IWindowServer
     {
@@ -6,5 +8,8 @@
         void CloseLoginWindow();
         string GetSaveFilePath(string filename);
         void ShowHelpDialog();
+
+        MessageFontInfo GetFontInfo();
+        MessageColorInfo GetColorInfo(); 
     }
 }

@@ -4,6 +4,9 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Xml.Serialization;
+using System.Windows;
+using FontFamily = System.Windows.Media.FontFamily;
+using FontStyle = System.Windows.FontStyle;
 
 namespace PicoChat.Common
 {
@@ -130,8 +133,42 @@ namespace PicoChat.Common
         }
     }
 
+    public class MessageFontInfo
+    {
+        public string FontFamily { get; set; }
+        public double FontSize { get; set; }
+        public FontWeight FontWeight { get; set; } = FontWeights.Regular;
+        public FontStyle FontStyle { get; set; } = FontStyles.Normal;
+        //public TextDecorationCollection TextDecorations { get; set; } = new TextDecorationCollection();
+
+        public MessageFontInfo(string fontFamily, double fontSize)
+        {
+            FontFamily = fontFamily;
+            FontSize = fontSize;
+        }
+
+        public MessageFontInfo() : this("Consolas", 14) {}
+    }
+
+    public class MessageColorInfo
+    {
+        public string Foreground { get; set; }
+
+        public MessageColorInfo(string foreground)
+        {
+            Foreground = foreground;
+        }
+
+        public MessageColorInfo() : this("#FF000000") { }
+    }
+
     public class Message : MessageBase
     {
+        [XmlElement]
+        public MessageColorInfo ColorInfo { get; set; }
+        [XmlElement]
+        public MessageFontInfo FontInfo { get; set; }
+
         [XmlElement]
         public string Content { get; set; }
 

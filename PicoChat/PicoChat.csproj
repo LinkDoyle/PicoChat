@@ -37,6 +37,7 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -127,6 +128,10 @@
   <ItemGroup>
     <Resource Include="images\download.png" />
     <Resource Include="images\file.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="images\font.png" />
+    <Resource Include="images\textcolor.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

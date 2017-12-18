@@ -34,7 +34,7 @@ namespace PicoChat
         void Join(string roomName);
         void Leave(string roomName);
         void ListJoinedRooms();
-        void SendMessage(string id, string roomName, string content);
+        void SendMessage(Message message);
         void SendMessage(string id, string roomName, Bitmap image);
 
         void BeginConnect(AsyncCallback requestCallback);

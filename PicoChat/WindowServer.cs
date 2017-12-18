@@ -1,5 +1,9 @@
-﻿using System.Windows;
-using Microsoft.Win32;
+﻿using PicoChat.Common;
+using System.Drawing;
+using System.Windows;
+using System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace PicoChat
 {
@@ -51,6 +55,38 @@ namespace PicoChat
         public void ShowHelpDialog()
         {
             MessageBox.Show(HelpMessageText, AppName);
+        }
+
+        public MessageFontInfo GetFontInfo()
+        {
+            var fd = new FontDialog();
+            var result = fd.ShowDialog();
+            MessageFontInfo fontInfo = null;
+            if (result == System.Windows.Forms.DialogResult.OK)
+            {
+                var tdc = new TextDecorationCollection();
+                if (fd.Font.Underline) tdc.Add(TextDecorations.Underline);
+                if (fd.Font.Strikeout) tdc.Add(TextDecorations.Strikethrough);
+                fontInfo = new MessageFontInfo(fd.Font.Name, fd.Font.Size * 96.0 / 72.0)
+                {
+                    FontWeight = fd.Font.Bold ? FontWeights.Bold : FontWeights.Regular,
+                    FontStyle = fd.Font.Italic ? FontStyles.Italic : FontStyles.Normal,
+                    //TextDecorations = tdc
+                };
+            }
+            return fontInfo;
+        }
+
+        public MessageColorInfo GetColorInfo()
+        {
+            var cd = new ColorDialog();
+            var result = cd.ShowDialog();
+            MessageColorInfo colorInfo = null;
+            if (result == System.Windows.Forms.DialogResult.OK)
+            {
+                colorInfo = new MessageColorInfo(ColorTranslator.ToHtml(cd.Color));
+            }
+            return colorInfo;
         }
     }
 }
