@@ -65,14 +65,12 @@ namespace PicoChat.Views
             ViewModel.SendFile(openFileDialog.FileName);
         }
 
-        private void DownloadButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            
-        }
-
         private void JoinRoomDialog_OnDialogClosing(object sender, DialogClosingEventArgs eventArgs)
         {
-            Debug.WriteLine("SAMPLE 2: Closing dialog with parameter: " + (eventArgs.Parameter ?? ""));
+            var result = (bool)eventArgs.Parameter;
+            if (!result) return;
+            ViewModel.JoinRoomCommand.Execute(RoomNameTextBox.Text);
+            RoomNameTextBox.Text = "";
         }
     }
 }

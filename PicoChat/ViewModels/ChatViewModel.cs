@@ -76,11 +76,11 @@ namespace PicoChat.ViewModels
         public ICommand SetMessageColorCommand { get; }
         public ICommand SetMessageFontCommand { get; }
 
-        public ICommand DisconnectCommand { get; }
-        public ICommand LogoutCommand { get; }
         public ICommand JoinRoomCommand { get; }
         public ICommand LeaveRoomCommand { get; }
 
+        public ICommand DisconnectCommand { get; }
+        public ICommand LogoutCommand { get; }
 
         public ChatViewModel(IWindowServer windowServer, IClient client)
         {
@@ -91,6 +91,7 @@ namespace PicoChat.ViewModels
             SendImageCommand = new DelegateCommand(OnSendImage);
             SendFileCommand = new DelegateCommand<string>(OnSendFile);
             PullFileCommand = new DelegateCommand<ChatFileMessage>(OnPullFile);
+            JoinRoomCommand = new DelegateCommand<string>(OnJoinRoom);
 
             SetMessageColorCommand = new DelegateCommand(OnSetMessageColorInfo);
             SetMessageFontCommand = new DelegateCommand(OnSetMessageFontInfo);
@@ -126,6 +127,11 @@ namespace PicoChat.ViewModels
             };
             FireInfo(_client.Name != null ? $"Hello {_client.Name}~" : "Hello, please login...");
             FireInfo("Use /? for help.");
+        }
+
+        private void OnJoinRoom(string roomName)
+        {
+            _client.Join(roomName);
         }
 
         private void OnSetMessageFontInfo(object obj)

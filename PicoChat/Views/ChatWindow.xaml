@@ -315,11 +315,13 @@
                             Padding="0"
                             Style="{StaticResource MaterialDesignFlatButton}"
                             ToolTip="Join room"
-                            Command="{x:Static md:DialogHost.OpenDialogCommand}">
+                            Command="{x:Static md:DialogHost.OpenDialogCommand}"
+                            md:DialogHost.DialogClosingAttached="JoinRoomDialog_OnDialogClosing">
                         <Button.CommandParameter>
                             <StackPanel Margin="16">
                                 <TextBlock>Join a room.</TextBlock>
                                 <TextBox Margin="0,8,0,0"
+                                         x:Name="RoomNameTextBox"
                                          HorizontalAlignment="Stretch" />
                                 <StackPanel HorizontalAlignment="Right"
                                             Orientation="Horizontal">
