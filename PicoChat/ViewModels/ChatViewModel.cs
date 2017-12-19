@@ -61,7 +61,7 @@ namespace PicoChat.ViewModels
             set => SetProperty(ref _selectedRoom, value);
         }
 
-        private string _messageToSend;
+        private string _messageToSend = "";
         public string MessageToSend
         {
             get => _messageToSend;
