@@ -15,6 +15,7 @@
         MinWidth="600"
         MinHeight="400"
         DataContext="{Binding ElementName=ChatWindowView}"
+        Icon="/PicoChat;component/Images/chat.png"
         Title="{Binding ViewModel.Title}"
         Background="{DynamicResource MaterialDesignPaper}"
         d:DataContext="{d:DesignInstance IsDesignTimeCreatable=True, Type={x:Type data:SampleChatView}}">
