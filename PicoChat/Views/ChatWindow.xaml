@@ -26,7 +26,7 @@
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ProgressBar.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <Style x:Key="ToolButtonStyle"
-                   TargetType="{x:Type Button}">
+                   TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignFlatButton}">
                 <Setter Property="Background"
                         Value="Transparent" />
                 <Setter Property="BorderBrush"
@@ -34,13 +34,9 @@
                 <Setter Property="BorderThickness"
                         Value="0" />
                 <Setter Property="Margin"
-                        Value="5" />
+                        Value="5,0,0,0" />
                 <Setter Property="Padding"
-                        Value="1" />
-                <Setter Property="Height"
-                        Value="25" />
-                <Setter Property="Width"
-                        Value="25" />
+                        Value="5" />
             </Style>
             <DataTemplate DataType="{x:Type models:ChatSystemMessage}">
                 <StackPanel HorizontalAlignment="Center">
@@ -380,43 +376,33 @@
                         Height="Auto"
                         BorderThickness="0,1,0,1"
                         BorderBrush="{DynamicResource MaterialDesignDivider}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Button Grid.Column="0"
-                                ToolTip="Send attachment"
-                                Style="{StaticResource ToolButtonStyle}"
-                                Click="SendFileButton_OnClick">
-                            <Image Source="/PicoChat;component/Images/attachment.png" />
-                        </Button>
-                        <Button Grid.Column="1"
-                                ToolTip="Send image"
-                                Style="{StaticResource ToolButtonStyle}"
-                                Click="SendImageButton_OnClick">
-                            <Image Source="/PicoChat;component/Images/picture.png"></Image>
-                        </Button>
-                        <Button Grid.Column="2"
-                                ToolTip="Set the font"
-                                Style="{StaticResource ToolButtonStyle}"
-                                Command="{Binding ViewModel.SetMessageFontCommand}">
-                            <Image Source="/PicoChat;component/Images/font.png"
-                                   RenderTransformOrigin="0.583,0.25"></Image>
-                        </Button>
-                        <Button Grid.Column="3"
-                                ToolTip="Set the textcolor"
-                                Style="{StaticResource ToolButtonStyle}"
-                                Command="{Binding ViewModel.SetMessageColorCommand}">
-                            <Image Source="/PicoChat;component/Images/textcolor.png"></Image>
-                        </Button>
-                    </Grid>
+                    <ToolBarTray IsLocked="True">
+                        <ToolBar ClipToBounds="False"
+                                 Style="{DynamicResource MaterialDesignToolBar}">
+                            <Button ToolTip="Send attachment"
+                                    Style="{StaticResource ToolButtonStyle}"
+                                    Click="SendFileButton_OnClick">
+                                <Image Source="/PicoChat;component/Images/attachment.png" />
+                            </Button>
+                            <Button ToolTip="Send image"
+                                    Style="{StaticResource ToolButtonStyle}"
+                                    Click="SendImageButton_OnClick">
+                                <Image Source="/PicoChat;component/Images/picture.png"></Image>
+                            </Button>
+                            <Separator />
+                            <Button ToolTip="Set the font"
+                                    Style="{StaticResource ToolButtonStyle}"
+                                    Command="{Binding ViewModel.SetMessageFontCommand}">
+                                <Image Source="/PicoChat;component/Images/font.png"
+                                       RenderTransformOrigin="0.583,0.25"></Image>
+                            </Button>
+                            <Button ToolTip="Set the textcolor"
+                                    Style="{StaticResource ToolButtonStyle}"
+                                    Command="{Binding ViewModel.SetMessageColorCommand}">
+                                <Image Source="/PicoChat;component/Images/textcolor.png"></Image>
+                            </Button>
+                        </ToolBar>
+                    </ToolBarTray>
                 </Border>
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
