@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Data;
+using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
 using PicoChat.Models;
 using PicoChat.Servers;
@@ -66,6 +68,11 @@ namespace PicoChat.Views
         private void DownloadButton_OnClick(object sender, RoutedEventArgs e)
         {
             
+        }
+
+        private void JoinRoomDialog_OnDialogClosing(object sender, DialogClosingEventArgs eventArgs)
+        {
+            Debug.WriteLine("SAMPLE 2: Closing dialog with parameter: " + (eventArgs.Parameter ?? ""));
         }
     }
 }

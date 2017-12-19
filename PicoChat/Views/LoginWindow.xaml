@@ -4,69 +4,58 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PicoChat.Views"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         ResizeMode="NoResize"
-        Title="PicoChat" Height="200" Width="300"
+        Title="PicoChat" Height="200" Width="260"
         x:Name="LoginWindowView"
         WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource MaterialDesignPaper}"
         DataContext="{Binding ElementName=LoginWindowView}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBox.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBlock.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Button.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
-            <RowDefinition Height="20"></RowDefinition>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
-        <TextBlock TextWrapping="Wrap" 
-                   Text="{Binding ViewModel.LoginMessage}" 
+        <TextBlock Width="200"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap" 
                    TextAlignment="Center"
-                   Margin="0" 
-                   VerticalAlignment="Center"/>
+                   Text="{Binding ViewModel.LoginMessage}"/>
         <TextBox Grid.Row="1"
                  x:Name="LoginTextBox"
+                 Width="200"
                  VerticalAlignment="Center"
                  HorizontalAlignment="Center"
-                 Height="25" Width="200"
-                 TextWrapping="NoWrap" 
-                 FontSize="14" 
-                 Text="{Binding ViewModel.Username, UpdateSourceTrigger=PropertyChanged}">
+                 TextWrapping="NoWrap"
+                 Text="{Binding ViewModel.Username, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                 materialDesign:HintAssist.Hint="User Names">
             <TextBox.InputBindings>
                 <KeyBinding Command="{Binding ViewModel.LoginCommand}" Key="Enter"/>
             </TextBox.InputBindings>
         </TextBox>
-        <TextBlock Grid.Row="1"
-                   IsHitTestVisible="False" 
-                   Foreground="DarkGray" 
-                   FontSize="14"
-                   HorizontalAlignment="Center" 
-                   VerticalAlignment="Center"
-                   Margin="5,0,0,0"
-                   Text="User Name"
-                   Width="200"
-                   Height="25">
-            <TextBlock.Style>
-                <Style TargetType="{x:Type TextBlock}">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Text, ElementName=LoginTextBox}" Value="">
-                            <Setter Property="Visibility" Value="Visible"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
-        </TextBlock>
         <Button Grid.Row="2"
-                Margin="0,0,0,0"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center"
-                Width="200" Height="25"
+                Width="200"
                 Content="Login"
                 Command="{Binding ViewModel.LoginCommand}">
             <Button.Style>
-                <Style TargetType="{x:Type Button}">
+                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignRaisedButton}">
                     <Setter Property="IsEnabled" Value="True"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding Text, ElementName=LoginTextBox}" Value="">
